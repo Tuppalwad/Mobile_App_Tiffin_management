@@ -68,7 +68,10 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
               Alert.alert('Subscribed!', 'Your monthly tiffin plan is now active.', [
                 {
                   text: 'View Subscriptions',
-                  onPress: () => navigation.navigate('CustomerSubscriptions'),
+                  onPress: () =>
+                    navigation.navigate('CustomerTabs', {
+                      screen: 'CustomerSubscriptions',
+                    }),
                 },
               ]);
             } catch (err) {
@@ -254,7 +257,11 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
           </View>
           <TouchableOpacity
             style={styles.checkoutBtn}
-            onPress={() => navigation.navigate('CustomerCart')}
+            onPress={() =>
+              navigation.navigate('CustomerTabs', {
+                screen: 'CustomerCart',
+              })
+            }
           >
             <Text style={styles.checkoutText}>View Cart 🛒 →</Text>
           </TouchableOpacity>
@@ -491,4 +498,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProviderDetailScreen;
-

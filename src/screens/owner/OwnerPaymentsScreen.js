@@ -48,9 +48,20 @@ export const OwnerPaymentsScreen = () => {
       ]);
       setPayments(paymentsRes.data.items || []);
       setSummary(summaryRes.data || null);
-      setCustomers(customersRes.data || []);
-      if (customersRes.data?.length > 0) {
-        setSelectedCustomerId(customersRes.data[0].customer_id || customersRes.data[0].id);
+      const custList = customersRes.data || [];
+      setCustomers(custList);
+      if (custList.length > 0) {
+        setSelectedCustomerId((prev) => {
+          if (prev && custList.some((c) => (c.customer_id || c.customer?.id || c.id) === prev)) {
+            return prev;
+          }
+          const first = custList[0];
+          const firstId = first.customer_id || first.customer?.id || first.id;
+          if (first.total_pending > 0) {
+            setAmount(first.total_pending.toString());
+          }
+          return firstId;
+        });
       }
     } catch (err) {
       console.warn('Error fetching payments:', err);
@@ -59,6 +70,25 @@ export const OwnerPaymentsScreen = () => {
       setRefreshing(false);
     }
   }, []);
+
+  const selectedCustomer = customers.find(
+    (c) => (c.customer_id || c.customer?.id || c.id) === selectedCustomerId
+  );
+
+  const handleSelectCustomer = (c) => {
+    const custId = c.customer_id || c.customer?.id || c.id;
+    setSelectedCustomerId(custId);
+    if (c.total_pending > 0) {
+      setAmount(c.total_pending.toString());
+    } else {
+      setAmount('');
+    }
+  };
+
+  const handleOpenModal = () => {
+    fetchData();
+    setModalVisible(true);
+  };
 
   useEffect(() => {
     fetchData();
@@ -145,7 +175,7 @@ export const OwnerPaymentsScreen = () => {
         <Text style={styles.sectionTitle}>Payment Transactions</Text>
         <TouchableOpacity
           style={styles.recordBtn}
-          onPress={() => setModalVisible(true)}
+          onPress={handleOpenModal}
         >
           <Text style={styles.recordBtnText}>+ Record Cash/UPI</Text>
         </TouchableOpacity>
@@ -187,34 +217,72 @@ export const OwnerPaymentsScreen = () => {
 
             <ScrollView contentContainerStyle={styles.modalForm}>
               {/* Customer Selector */}
-              {customers.length > 0 && (
+              {customers.length > 0 ? (
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.label}>Select Customer *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {customers.map((c) => {
                       const custId = c.customer_id || c.customer?.id || c.id;
-                      const custName = c.customer?.name || 'Customer';
+                      const custName = c.customer?.name || c.name || 'Customer';
+                      const isSelected = selectedCustomerId === custId;
                       return (
                         <TouchableOpacity
                           key={custId}
-                          onPress={() => setSelectedCustomerId(custId)}
+                          onPress={() => handleSelectCustomer(c)}
                           style={[
                             styles.custChip,
-                            selectedCustomerId === custId && styles.activeCustChip,
+                            isSelected && styles.activeCustChip,
                           ]}
                         >
                           <Text
                             style={[
                               styles.custChipText,
-                              selectedCustomerId === custId && styles.activeCustText,
+                              isSelected && styles.activeCustText,
                             ]}
                           >
                             {custName}
                           </Text>
+                          {c.total_pending > 0 && (
+                            <View style={[styles.pendingPill, isSelected && styles.activePendingPill]}>
+                              <Text style={[styles.pendingPillText, isSelected && styles.activePendingPillText]}>
+                                ₹{c.total_pending}
+                              </Text>
+                            </View>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
                   </ScrollView>
+                </View>
+              ) : (
+                <View style={styles.noCustomersNotice}>
+                  <Text style={styles.noCustomersNoticeText}>
+                    ⚠️ No customer records found.
+                  </Text>
+                </View>
+              )}
+
+              {/* Selected Customer Summary Card */}
+              {selectedCustomer && (
+                <View style={styles.selectedCustomerBanner}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.selectedCustomerName}>
+                      👤 {selectedCustomer.customer?.name || selectedCustomer.name || 'Customer'}
+                    </Text>
+                    <Text style={styles.selectedCustomerPhone}>
+                      📞 {selectedCustomer.customer?.phone || selectedCustomer.phone || 'No phone'}
+                    </Text>
+                  </View>
+                  {selectedCustomer.total_pending > 0 ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.pendingLabelText}>Pending Due</Text>
+                      <Text style={styles.pendingAmountText}>
+                        ₹{selectedCustomer.total_pending}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Badge text="All Clear" status="success" />
+                  )}
                 </View>
               )}
 
@@ -487,6 +555,67 @@ const styles = StyleSheet.create({
   },
   activeMethodText: {
     color: '#FFF',
+  },
+  pendingPill: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: SIZES.radiusFull,
+    backgroundColor: '#FFEAEA',
+  },
+  activePendingPill: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  pendingPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.error,
+  },
+  activePendingPillText: {
+    color: '#FFF',
+  },
+  selectedCustomerBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 16,
+  },
+  selectedCustomerName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  selectedCustomerPhone: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  pendingLabelText: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+  },
+  pendingAmountText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.warning,
+    marginTop: 2,
+  },
+  noCustomersNotice: {
+    padding: 12,
+    backgroundColor: '#FFF8E7',
+    borderRadius: SIZES.radiusSm,
+    marginBottom: 16,
+  },
+  noCustomersNoticeText: {
+    fontSize: 13,
+    color: '#B7791F',
+    fontWeight: '600',
   },
 });
 

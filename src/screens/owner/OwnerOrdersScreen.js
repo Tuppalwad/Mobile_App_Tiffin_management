@@ -89,7 +89,7 @@ export const OwnerOrdersScreen = () => {
 
         {/* Items List */}
         <View style={styles.itemsBox}>
-          {item.items?.map((foodItem, idx) => (
+          {item.orderItems?.map((foodItem, idx) => (
             <View key={idx} style={styles.itemRow}>
               <Text style={styles.itemText}>
                 {foodItem.quantity}x {foodItem.item_name}
