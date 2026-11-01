@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "369504801424",
+    "project_id": "tiffin-managment-85e72",
+    "storage_bucket": "tiffin-managment-85e72.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:369504801424:android:2320a7c93be7de4e367e15",
+        "android_client_info": {
+          "package_name": "com.vyankates.tiffin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC08-9VF-3GIZ5k6BHZeOMz8Ukh1DIsb14"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
