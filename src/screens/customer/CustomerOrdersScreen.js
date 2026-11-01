@@ -18,6 +18,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 const STATUS_STEPS = [
   { key: 'order_received', label: 'Received' },
@@ -47,6 +48,9 @@ export const CustomerOrdersScreen = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  // Real-time auto refresh when push notification arrives (e.g. preparing -> ready -> out_for_delivery)
+  useNotificationAutoRefresh(['order', 'ORDER_STATUS_UPDATED', 'ORDER_CANCELLED', 'NEW_ORDER'], fetchOrders);
 
   const onRefresh = () => {
     setRefreshing(true);

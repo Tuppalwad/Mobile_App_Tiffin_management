@@ -18,6 +18,7 @@ import { useSelector } from 'react-redux';
 import { Card } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerDashboardScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
@@ -40,6 +41,9 @@ export const OwnerDashboardScreen = ({ navigation }) => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // Real-time auto refresh dashboard stats on incoming push notifications
+  useNotificationAutoRefresh(['order', 'subscription', 'skip', 'payment', 'NEW_ORDER', 'NEW_SUBSCRIPTION'], fetchDashboardData);
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -17,6 +17,7 @@ import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { verifyOtpThunk } from '../../store/slices/authSlice';
 import { authApi } from '../../api/authApi';
+import { notificationService } from '../../services/notificationService';
 
 export const OtpScreen = ({ route, navigation }) => {
   const { phone, receivedOtp } = route.params || {};
@@ -31,7 +32,8 @@ export const OtpScreen = ({ route, navigation }) => {
       return;
     }
 
-    const resultAction = await dispatch(verifyOtpThunk({ phone, otp }));
+    const fcmToken = await notificationService.getFCMToken();
+    const resultAction = await dispatch(verifyOtpThunk({ phone, otp, fcmToken }));
     if (verifyOtpThunk.fulfilled.match(resultAction)) {
       const user = resultAction.payload.user;
       // If user hasn't selected a role yet, go to RoleSelectionScreen

@@ -17,6 +17,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerSubscriptionsScreen = () => {
   const [activeTab, setActiveTab] = useState('subscriptions'); // 'subscriptions' | 'skips'
@@ -44,6 +45,9 @@ export const OwnerSubscriptionsScreen = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time auto refresh when customer subscribes or requests skip
+  useNotificationAutoRefresh(['subscription', 'skip', 'NEW_SUBSCRIPTION', 'NEW_SKIP_REQUEST'], fetchData);
 
   const onRefresh = () => {
     setRefreshing(true);
