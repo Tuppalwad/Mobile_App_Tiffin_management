@@ -9,9 +9,13 @@ import { authApi } from '../../api/authApi';
 // Async Thunks
 export const verifyOtpThunk = createAsyncThunk(
   'auth/verifyOtp',
-  async ({ phone, otp }, { rejectWithValue }) => {
+  async ({ phone, otp, fcmToken }, { rejectWithValue }) => {
     try {
-      const response = await authApi.verifyOtp(phone, otp);
+      let tokenToSync = fcmToken;
+      if (!tokenToSync) {
+        tokenToSync = await AsyncStorage.getItem('fcm_token');
+      }
+      const response = await authApi.verifyOtp(phone, otp, tokenToSync);
       const { token, user } = response.data;
       await AsyncStorage.setItem('auth_token', token);
       await AsyncStorage.setItem('user_info', JSON.stringify(user));

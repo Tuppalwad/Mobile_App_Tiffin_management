@@ -19,6 +19,8 @@ import { Card, Badge } from '../../components/Card';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
+import { notificationApi } from '../../api/notificationApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const CustomerHomeScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
@@ -26,20 +28,25 @@ export const CustomerHomeScreen = ({ navigation }) => {
   const [providers, setProviders] = useState([]);
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [search, setSearch] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [provRes, subsRes] = await Promise.all([
+      const [provRes, subsRes, notifRes] = await Promise.all([
         customerApi.getProviders({ search: search.trim() || undefined }),
         customerApi.getSubscriptions({ status: 'active' }),
+        notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
       ]);
       setProviders(provRes.data || []);
       if (subsRes.data?.length > 0) {
         setActiveSubscription(subsRes.data[0]);
       } else {
         setActiveSubscription(null);
+      }
+      if (notifRes?.data) {
+        setUnreadCount(notifRes.data.unreadCount || notifRes.data.items?.length || 0);
       }
     } catch (err) {
       console.warn('Customer home fetch error:', err);
@@ -52,6 +59,9 @@ export const CustomerHomeScreen = ({ navigation }) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time auto refresh notifications count on incoming push notifications
+  useNotificationAutoRefresh('*', fetchData);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -109,21 +119,38 @@ export const CustomerHomeScreen = ({ navigation }) => {
           <View>
             {/* Header Greeting */}
             <View style={styles.header}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.greeting}>Hello, {user?.name || 'Foodie'} 👋</Text>
                 <Text style={styles.tagline}>Craving healthy ghar ka khana?</Text>
               </View>
-              {cart.items.length > 0 && (
+
+              <View style={styles.headerActions}>
                 <TouchableOpacity
-                  style={styles.cartBtn}
-                  onPress={() => navigation.navigate('CustomerCart')}
+                  style={styles.notifBtn}
+                  onPress={() => navigation.navigate('Notifications')}
                 >
-                  <Text style={{ fontSize: 20 }}>🛒</Text>
-                  <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{cart.items.length}</Text>
-                  </View>
+                  <Text style={{ fontSize: 22 }}>🔔</Text>
+                  {unreadCount > 0 && (
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartBadgeText}>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
-              )}
+
+                {cart.items.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.cartBtn, { marginLeft: 10 }]}
+                    onPress={() => navigation.navigate('CustomerCart')}
+                  >
+                    <Text style={{ fontSize: 20 }}>🛒</Text>
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartBadgeText}>{cart.items.length}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             {/* Active Subscription Banner */}
@@ -200,6 +227,21 @@ const styles = StyleSheet.create({
     ...FONTS.h2,
     color: COLORS.text,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notifBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    position: 'relative',
+  },
   cartBtn: {
     width: 44,
     height: 44,
@@ -209,6 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    position: 'relative',
   },
   cartBadge: {
     position: 'absolute',

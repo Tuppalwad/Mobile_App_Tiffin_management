@@ -18,17 +18,26 @@ import { useSelector } from 'react-redux';
 import { Card } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { notificationApi } from '../../api/notificationApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerDashboardScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
   const [stats, setStats] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const response = await ownerApi.getDashboardStats();
-      setStats(response.data);
+      const [dashRes, notifRes] = await Promise.all([
+        ownerApi.getDashboardStats(),
+        notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
+      ]);
+      setStats(dashRes.data);
+      if (notifRes?.data) {
+        setUnreadCount(notifRes.data.unreadCount || notifRes.data.items?.length || 0);
+      }
     } catch (error) {
       console.warn('Dashboard stats error:', error);
     } finally {
@@ -40,6 +49,9 @@ export const OwnerDashboardScreen = ({ navigation }) => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // Real-time auto refresh dashboard stats on incoming push notifications
+  useNotificationAutoRefresh(['order', 'subscription', 'skip', 'payment', 'NEW_ORDER', 'NEW_SUBSCRIPTION'], fetchDashboardData);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -71,9 +83,16 @@ export const OwnerDashboardScreen = ({ navigation }) => {
           </View>
           <TouchableOpacity
             style={styles.notifBadge}
-            onPress={() => navigation.navigate('OwnerProfile')}
+            onPress={() => navigation.navigate('Notifications')}
           >
-            <Text style={{ fontSize: 22 }}>⚙️</Text>
+            <Text style={{ fontSize: 22 }}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -223,6 +242,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    position: 'relative',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: COLORS.danger,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   revenueCard: {
     backgroundColor: COLORS.primary,

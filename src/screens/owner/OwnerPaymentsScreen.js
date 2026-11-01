@@ -22,6 +22,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerPaymentsScreen = () => {
   const [payments, setPayments] = useState([]);
@@ -93,6 +94,9 @@ export const OwnerPaymentsScreen = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time auto refresh when payments are recorded
+  useNotificationAutoRefresh(['payment', 'PAYMENT_RECORDED'], fetchData);
 
   const onRefresh = () => {
     setRefreshing(true);

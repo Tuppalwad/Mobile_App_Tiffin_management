@@ -35,6 +35,9 @@ import CustomerSubscriptionsScreen from '../screens/customer/CustomerSubscriptio
 import CustomerOrdersScreen from '../screens/customer/CustomerOrdersScreen';
 import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
 
+// Common Screens
+import NotificationsScreen from '../screens/common/NotificationsScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -58,7 +61,7 @@ const OwnerTabNavigator = () => (
       tabBarLabelStyle: styles.tabBarLabel,
       tabBarIcon: ({ focused }) => {
         let icon = '📋';
-        if (route.name === 'OwnerDashboard') icon = '📊';
+        if (route.name === 'OwnerDashboard') icon = '🏠';
         else if (route.name === 'OwnerOrders') icon = '🍱';
         else if (route.name === 'OwnerMenu') icon = '🥘';
         else if (route.name === 'OwnerPlans') icon = '📅';
@@ -69,7 +72,7 @@ const OwnerTabNavigator = () => (
       },
     })}
   >
-    <Tab.Screen name="OwnerDashboard" component={OwnerDashboardScreen} options={{ title: 'Overview' }} />
+    <Tab.Screen name="OwnerDashboard" component={OwnerDashboardScreen} options={{ title: 'Home' }} />
     <Tab.Screen name="OwnerOrders" component={OwnerOrdersScreen} options={{ title: 'Orders' }} />
     <Tab.Screen name="OwnerMenu" component={OwnerMenuScreen} options={{ title: 'Menu' }} />
     <Tab.Screen name="OwnerPlans" component={OwnerPlansScreen} options={{ title: 'Plans' }} />
@@ -119,11 +122,20 @@ const CustomerTabs = () => {
   );
 };
 
-// --- Customer Stack (with Provider Detail) ---
+// --- Owner Stack (with Notifications) ---
+const OwnerNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="OwnerTabs" component={OwnerTabNavigator} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
+  </Stack.Navigator>
+);
+
+// --- Customer Stack (with Provider Detail & Notifications) ---
 const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
     <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
@@ -152,7 +164,7 @@ export const RootNavigator = () => {
       ) : !role ? (
         <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
       ) : role === 'owner' ? (
-        <Stack.Screen name="OwnerApp" component={OwnerTabNavigator} />
+        <Stack.Screen name="OwnerApp" component={OwnerNavigator} />
       ) : (
         <Stack.Screen name="CustomerApp" component={CustomerNavigator} />
       )}

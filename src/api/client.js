@@ -5,9 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // In development, Android emulator connects to host machine via 10.0.2.2
 // iOS simulator connects via localhost or 127.0.0.1
 export const BASE_URL = Platform.select({
-  android: 'http://192.168.1.10:5001/api',
-  ios: 'http://localhost:5001/api',
-  default: 'http://localhost:5001/api',
+  android: 'https://tiffin-backend-1-1-1.onrender.com/api',
+  ios: 'https://tiffin-backend-1-1-1.onrender.com/api',
+  default: 'https://tiffin-backend-1-1-1.onrender.com/api',
 });
 
 const apiClient = axios.create({

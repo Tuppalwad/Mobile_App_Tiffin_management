@@ -18,6 +18,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 const STATUS_FILTERS = [
   { label: 'All', value: '' },
@@ -51,6 +52,9 @@ export const OwnerOrdersScreen = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  // Real-time auto refresh when customer places order or cancels
+  useNotificationAutoRefresh(['order', 'NEW_ORDER', 'ORDER_CANCELLED', 'ORDER_STATUS_UPDATED'], fetchOrders);
 
   const onRefresh = () => {
     setRefreshing(true);

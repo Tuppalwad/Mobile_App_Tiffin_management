@@ -20,6 +20,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
+import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const CustomerSubscriptionsScreen = () => {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -53,6 +54,9 @@ export const CustomerSubscriptionsScreen = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time auto refresh when owner approves/rejects skip or updates subscription
+  useNotificationAutoRefresh(['subscription', 'skip', 'SKIP_STATUS_UPDATED', 'SUBSCRIPTION_STATUS_UPDATED'], fetchData);
 
   const onRefresh = () => {
     setRefreshing(true);
