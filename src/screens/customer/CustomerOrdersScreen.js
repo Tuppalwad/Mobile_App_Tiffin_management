@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
@@ -45,9 +46,12 @@ export const CustomerOrdersScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  // Fetch orders when user navigates to this screen
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   // Real-time auto refresh when push notification arrives (e.g. preparing -> ready -> out_for_delivery)
   useNotificationAutoRefresh(['order', 'ORDER_STATUS_UPDATED', 'ORDER_CANCELLED', 'NEW_ORDER'], fetchOrders);

@@ -15,7 +15,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '../../components/Card';
+import { SetupTracker } from '../../components/SetupTracker';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { notificationApi } from '../../api/notificationApi';
@@ -25,19 +27,29 @@ export const OwnerDashboardScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
   const [stats, setStats] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [menuCount, setMenuCount] = useState(0);
+  const [planCount, setPlanCount] = useState(0);
+  const [hasProfileDetails, setHasProfileDetails] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [dashRes, notifRes] = await Promise.all([
+      const [dashRes, notifRes, menuRes, planRes, profRes] = await Promise.all([
         ownerApi.getDashboardStats(),
         notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
+        ownerApi.getMenuItems().catch(() => ({ data: [] })),
+        ownerApi.getPlans().catch(() => ({ data: [] })),
+        ownerApi.getProfile().catch(() => ({ data: null })),
       ]);
       setStats(dashRes.data);
       if (notifRes?.data) {
         setUnreadCount(notifRes.data.unreadCount || notifRes.data.items?.length || 0);
       }
+      setMenuCount(menuRes.data?.length || 0);
+      setPlanCount(planRes.data?.length || 0);
+      const prof = profRes?.data;
+      setHasProfileDetails(Boolean(prof && (prof.address || prof.description || prof.city)));
     } catch (error) {
       console.warn('Dashboard stats error:', error);
     } finally {
@@ -46,9 +58,12 @@ export const OwnerDashboardScreen = ({ navigation }) => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  // Fetch fresh data every time user focuses/visits the Home page
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [fetchDashboardData])
+  );
 
   // Real-time auto refresh dashboard stats on incoming push notifications
   useNotificationAutoRefresh(['order', 'subscription', 'skip', 'payment', 'NEW_ORDER', 'NEW_SUBSCRIPTION'], fetchDashboardData);
@@ -57,6 +72,33 @@ export const OwnerDashboardScreen = ({ navigation }) => {
     setRefreshing(true);
     fetchDashboardData();
   };
+
+  const ownerSetupSteps = [
+    {
+      id: 'step_menu',
+      title: 'Add Your Menu Items 🥘',
+      desc: menuCount > 0 ? `${menuCount} dishes added` : 'Add homemade curries, rotis, rice & daily specials',
+      badge: menuCount > 0 ? `${menuCount} Added` : 'Required',
+      isCompleted: menuCount > 0,
+      onPress: () => navigation.navigate('OwnerMenu'),
+    },
+    {
+      id: 'step_plans',
+      title: 'Create Subscription Plans 📅',
+      desc: planCount > 0 ? `${planCount} active plans` : 'Set weekly/monthly plans (e.g. 30-Day Lunch Plan)',
+      badge: planCount > 0 ? `${planCount} Created` : 'Required',
+      isCompleted: planCount > 0,
+      onPress: () => navigation.navigate('OwnerPlans'),
+    },
+    {
+      id: 'step_settings',
+      title: 'Update Kitchen & Service Details ⚙️',
+      desc: hasProfileDetails ? 'Kitchen profile completed' : 'Set delivery radius, kitchen address & phone in Settings',
+      badge: hasProfileDetails ? 'Done' : 'Important',
+      isCompleted: hasProfileDetails,
+      onPress: () => navigation.navigate('OwnerProfile'),
+    },
+  ];
 
   if (loading && !stats) {
     return (
@@ -95,6 +137,14 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* First-time Onboarding & Setup Tracker */}
+        <SetupTracker
+          title="🚀 Kitchen Setup Tracker"
+          subtitle="Follow these steps to start receiving and managing tiffins"
+          steps={ownerSetupSteps}
+          storageKey={`owner_setup_dismissed_${user?.id || 'default'}`}
+        />
 
         {/* Financial Highlights Card */}
         <View style={styles.revenueCard}>

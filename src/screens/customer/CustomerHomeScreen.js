@@ -14,6 +14,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Card, Badge } from '../../components/Card';
 import { Input } from '../../components/Input';
@@ -56,9 +57,12 @@ export const CustomerHomeScreen = ({ navigation }) => {
     }
   }, [search]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // Always refresh latest data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   // Real-time auto refresh notifications count on incoming push notifications
   useNotificationAutoRefresh('*', fetchData);

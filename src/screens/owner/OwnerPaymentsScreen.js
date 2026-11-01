@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -91,9 +92,12 @@ export const OwnerPaymentsScreen = () => {
     setModalVisible(true);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // Auto-fetch latest payments and balances on focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   // Real-time auto refresh when payments are recorded
   useNotificationAutoRefresh(['payment', 'PAYMENT_RECORDED'], fetchData);

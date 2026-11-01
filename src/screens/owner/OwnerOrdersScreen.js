@@ -14,7 +14,12 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
@@ -27,6 +32,14 @@ const STATUS_FILTERS = [
   { label: 'Ready', value: 'tiffin_ready' },
   { label: 'Out for Delivery', value: 'out_for_delivery' },
   { label: 'Delivered', value: 'delivered' },
+  { label: 'Cancelled', value: 'cancelled' },
+];
+
+const QUICK_CANCEL_REASONS = [
+  'Customer ordered too late ⏰',
+  'Kitchen closed for the day 🚪',
+  'Out of meal ingredients 🥘',
+  'Delivery address unserviceable 📍',
 ];
 
 export const OwnerOrdersScreen = () => {
@@ -34,6 +47,12 @@ export const OwnerOrdersScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Cancellation Modal State
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -49,9 +68,12 @@ export const OwnerOrdersScreen = () => {
     }
   }, [selectedFilter]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  // Auto-fetch latest orders whenever owner focuses/opens the Orders page
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   // Real-time auto refresh when customer places order or cancels
   useNotificationAutoRefresh(['order', 'NEW_ORDER', 'ORDER_CANCELLED', 'ORDER_STATUS_UPDATED'], fetchOrders);
@@ -68,6 +90,35 @@ export const OwnerOrdersScreen = () => {
       fetchOrders();
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to update order status');
+    }
+  };
+
+  const handleOpenCancelModal = (order) => {
+    setCancellingOrder(order);
+    setCancelReason('');
+    setCancelModalVisible(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingOrder) return;
+    setIsCancelling(true);
+    try {
+      await ownerApi.updateOrderStatus(cancellingOrder.id, 'cancelled', {
+        reason: cancelReason.trim() || undefined,
+      });
+      setCancelModalVisible(false);
+      const orderNum = cancellingOrder.order_number;
+      setCancellingOrder(null);
+      setCancelReason('');
+      fetchOrders();
+      Alert.alert(
+        'Order Cancelled',
+        `Order #${orderNum} has been cancelled and customer notified via push notification.`
+      );
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to cancel order');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -103,6 +154,13 @@ export const OwnerOrdersScreen = () => {
           ))}
         </View>
 
+        {/* Notes / Special Instructions / Cancel Reason */}
+        {item.notes ? (
+          <View style={styles.notesBox}>
+            <Text style={styles.notesText}>📝 {item.notes}</Text>
+          </View>
+        ) : null}
+
         {/* Total & Payment Status */}
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total Amount:</Text>
@@ -120,7 +178,7 @@ export const OwnerOrdersScreen = () => {
         <View style={styles.statusButtonsRow}>
           {item.order_status === 'order_received' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#FF9800' }]}
+              style={[styles.statusBtn, { backgroundColor: '#FF9800', flex: 1, marginRight: 8 }]}
               onPress={() => handleUpdateStatus(item.id, 'preparing')}
             >
               <Text style={styles.statusBtnText}>Start Preparing 🍲</Text>
@@ -129,7 +187,7 @@ export const OwnerOrdersScreen = () => {
 
           {item.order_status === 'preparing' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#1976D2' }]}
+              style={[styles.statusBtn, { backgroundColor: '#1976D2', flex: 1, marginRight: 8 }]}
               onPress={() => handleUpdateStatus(item.id, 'tiffin_ready')}
             >
               <Text style={styles.statusBtnText}>Tiffin Ready 🍱</Text>
@@ -138,7 +196,7 @@ export const OwnerOrdersScreen = () => {
 
           {item.order_status === 'tiffin_ready' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#0288D1' }]}
+              style={[styles.statusBtn, { backgroundColor: '#0288D1', flex: 1, marginRight: 8 }]}
               onPress={() => handleUpdateStatus(item.id, 'out_for_delivery')}
             >
               <Text style={styles.statusBtnText}>Out for Delivery 🛵</Text>
@@ -147,10 +205,24 @@ export const OwnerOrdersScreen = () => {
 
           {item.order_status === 'out_for_delivery' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#2E7D32' }]}
+              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1, marginRight: 8 }]}
               onPress={() => handleUpdateStatus(item.id, 'delivered')}
             >
               <Text style={styles.statusBtnText}>Mark Delivered ✅</Text>
+            </TouchableOpacity>
+          )}
+
+          {item.order_status !== 'delivered' && item.order_status !== 'cancelled' && (
+            <TouchableOpacity
+              style={[
+                styles.cancelBtn,
+                ['order_received', 'preparing', 'tiffin_ready', 'out_for_delivery'].includes(item.order_status)
+                  ? { flex: 0.8 }
+                  : { flex: 1 }
+              ]}
+              onPress={() => handleOpenCancelModal(item)}
+            >
+              <Text style={styles.cancelBtnText}>Cancel ❌</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -210,6 +282,87 @@ export const OwnerOrdersScreen = () => {
           }
         />
       )}
+      {/* Cancellation Modal with Optional Reason */}
+      <Modal
+        visible={cancelModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isCancelling && setCancelModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cancel Order ❌</Text>
+              <Text style={styles.modalSubtitle}>
+                Order #{cancellingOrder?.order_number} • {cancellingOrder?.customer?.name || 'Customer'}
+              </Text>
+            </View>
+
+            <Text style={styles.modalPrompt}>
+              Reason for cancellation (optional):
+            </Text>
+
+            {/* Quick chips */}
+            <View style={styles.quickChipsContainer}>
+              {QUICK_CANCEL_REASONS.map((r, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    styles.reasonChip,
+                    cancelReason === r && styles.activeReasonChip,
+                  ]}
+                  onPress={() => setCancelReason(r)}
+                >
+                  <Text
+                    style={[
+                      styles.reasonChipText,
+                      cancelReason === r && styles.activeReasonChipText,
+                    ]}
+                  >
+                    {r}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Custom reason input */}
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="Or type a custom reason..."
+              placeholderTextColor={COLORS.textMuted}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+              numberOfLines={3}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.keepBtn}
+                onPress={() => setCancelModalVisible(false)}
+                disabled={isCancelling}
+              >
+                <Text style={styles.keepBtnText}>Keep Order</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmCancelBtn}
+                onPress={handleConfirmCancel}
+                disabled={isCancelling}
+              >
+                {isCancelling ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.confirmCancelBtnText}>Cancel Order</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -308,6 +461,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
   },
+  notesBox: {
+    backgroundColor: '#FFF3E0',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  notesText: {
+    fontSize: 13,
+    color: '#E65100',
+    fontWeight: '500',
+  },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -325,7 +489,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   statusButtonsRow: {
-    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
   },
   statusBtn: {
     paddingVertical: 10,
@@ -336,6 +502,127 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtnText: {
+    color: '#D32F2F',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  modalPrompt: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  quickChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  reasonChip: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  activeReasonChip: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#E53935',
+  },
+  reasonChipText: {
+    fontSize: 12,
+    color: COLORS.text,
+  },
+  activeReasonChipText: {
+    color: '#D32F2F',
+    fontWeight: '600',
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: COLORS.text,
+    minHeight: 64,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+  },
+  keepBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  keepBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
   },
   center: {
     flex: 1,

@@ -105,13 +105,13 @@ export const OtpScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {receivedOtp ? (
+        {/* {receivedOtp ? (
           <View style={styles.hintBox}>
             <Text style={styles.hintText}>
               ⚡ Dev Master OTP Auto-filled: <Text style={{ fontWeight: '700' }}>{otp}</Text>
             </Text>
           </View>
-        ) : null}
+        ) : null} */}
       </View>
     </SafeAreaView>
   );

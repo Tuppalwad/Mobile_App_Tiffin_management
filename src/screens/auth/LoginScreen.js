@@ -20,7 +20,7 @@ import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { authApi } from '../../api/authApi';
 
 export const LoginScreen = ({ navigation }) => {
-  const [phone, setPhone] = useState('9876543210');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,7 +66,7 @@ export const LoginScreen = ({ navigation }) => {
 
             <Input
               label="Mobile Number"
-              placeholder="98765 43210"
+              placeholder="Enter 10-digit mobile number"
               prefix="+91"
               value={phone}
               onChangeText={(text) => {
@@ -87,7 +87,7 @@ export const LoginScreen = ({ navigation }) => {
           </View>
 
           {/* Quick Demo Switcher Hint */}
-          <View style={styles.demoBox}>
+          {/* <View style={styles.demoBox}>
             <Text style={styles.demoTitle}>💡 Quick Test Accounts:</Text>
             <Text
               style={styles.demoItem}
@@ -101,7 +101,7 @@ export const LoginScreen = ({ navigation }) => {
             >
               • Customer Demo: <Text style={styles.demoBold}>9123456789</Text>
             </Text>
-          </View>
+          </View> */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

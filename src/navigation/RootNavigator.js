@@ -106,7 +106,7 @@ const CustomerTabs = () => {
         },
       })}
     >
-      <Tab.Screen name="CustomerHome" component={CustomerHomeScreen} options={{ title: 'Explore' }} />
+      <Tab.Screen name="CustomerHome" component={CustomerHomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="CustomerSubscriptions" component={CustomerSubscriptionsScreen} options={{ title: 'My Tiffins' }} />
       <Tab.Screen
         name="CustomerCart"

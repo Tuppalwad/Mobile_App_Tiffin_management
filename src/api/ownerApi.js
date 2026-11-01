@@ -28,7 +28,8 @@ export const ownerApi = {
   // Orders
   getOrders: (params) => apiClient.get('/owner/orders', { params }),
   getOrderById: (id) => apiClient.get(`/owner/orders/${id}`),
-  updateOrderStatus: (id, status) => apiClient.patch(`/owner/orders/${id}/status`, { status }),
+  updateOrderStatus: (id, status, extra = {}) =>
+    apiClient.patch(`/owner/orders/${id}/status`, { status, ...extra }),
 
   // Customers & Subscriptions
   getSubscriptions: (params) => apiClient.get('/owner/subscriptions', { params }),
