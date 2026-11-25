@@ -2,23 +2,33 @@
  * Customer Cart & Checkout Screen
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { updateQuantity, clearCart } from '../../store/slices/cartSlice';
+import { updateUser } from '../../store/slices/authSlice';
 import { customerApi } from '../../api/customerApi';
+
+const MEAL_TIMINGS = [
+  { key: 'breakfast', label: '🌅 Breakfast' },
+  { key: 'lunch', label: '☀️ Lunch' },
+  { key: 'dinner', label: '🌙 Dinner' },
+];
 
 export const CustomerCartScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -28,18 +38,72 @@ export const CustomerCartScreen = ({ navigation }) => {
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' | 'pickup'
   const [mealTiming, setMealTiming] = useState('lunch');
   const [deliveryAddress, setDeliveryAddress] = useState(
-    user?.customerProfile?.delivery_address || user?.customerProfile?.address || 'Flat 402, Sunshine Residency'
+    user?.customerProfile?.delivery_address || user?.customerProfile?.address || ''
   );
+  const [addressEdited, setAddressEdited] = useState(false);
+  const [deliveryAvailable, setDeliveryAvailable] = useState(true);
+  const [pickupAvailable, setPickupAvailable] = useState(true);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Sync latest provider delivery/pickup settings and customer saved address on focus
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const syncCheckoutData = async () => {
+        try {
+          if (cart.providerId) {
+            const provRes = await customerApi.getProviderDetails(cart.providerId);
+            const provider = provRes?.data?.provider;
+            if (isActive && provider) {
+              const canDeliver = provider.delivery_available !== false;
+              const canPickup = provider.pickup_available !== false;
+              setDeliveryAvailable(canDeliver);
+              setPickupAvailable(canPickup);
+
+              if (!canDeliver && canPickup) {
+                setDeliveryType('pickup');
+              } else if (canDeliver && !canPickup) {
+                setDeliveryType('delivery');
+              }
+            }
+          }
+
+          const profRes = await customerApi.getProfile();
+          const profile = profRes?.data;
+          if (isActive && profile) {
+            dispatch(updateUser({ customerProfile: profile }));
+            const savedAddress = profile.delivery_address || profile.address || '';
+            if (!addressEdited && savedAddress) {
+              setDeliveryAddress(savedAddress);
+            }
+          }
+        } catch (err) {
+          console.warn('Checkout sync error:', err);
+        }
+      };
+
+      syncCheckoutData();
+      return () => {
+        isActive = false;
+      };
+    }, [cart.providerId, addressEdited, dispatch])
+  );
+
   const subtotal = cart.items.reduce((acc, i) => acc + i.price * i.quantity, 0);
-  const deliveryCharge = deliveryType === 'delivery' ? 0 : 0; // Free delivery for demo
+  const deliveryCharge = 0;
   const grandTotal = subtotal + deliveryCharge;
+  const noFulfillmentAvailable = !deliveryAvailable && !pickupAvailable;
 
   const handlePlaceOrder = async () => {
     if (cart.items.length === 0) {
       Alert.alert('Empty Cart', 'Please add items to your cart first.');
+      return;
+    }
+
+    if (noFulfillmentAvailable) {
+      Alert.alert('Unavailable', 'This provider is currently not accepting delivery or pickup orders.');
       return;
     }
 
@@ -62,7 +126,7 @@ export const CustomerCartScreen = ({ navigation }) => {
         order_date: today,
         meal_timing: mealTiming,
         delivery_type: deliveryType,
-        delivery_address: deliveryAddress.trim(),
+        delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
         notes: notes.trim(),
       });
 
@@ -104,161 +168,186 @@ export const CustomerCartScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Order Summary</Text>
-        <Text style={styles.providerName}>From: {cart.providerName}</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Order Summary</Text>
+          <Text style={styles.providerName}>From: {cart.providerName}</Text>
 
-        {/* Items List Card */}
-        <Card style={styles.card}>
-          <Text style={styles.cardHeading}>Items in Cart</Text>
-          {cart.items.map((item) => (
-            <View key={item.menuItemId} style={styles.cartItemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemUnitPrice}>₹{item.price} each</Text>
+          {/* Items List Card */}
+          <Card style={styles.card}>
+            <Text style={styles.cardHeading}>Items in Cart</Text>
+            {cart.items.map((item) => (
+              <View key={item.menuItemId} style={styles.cartItemRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemUnitPrice}>₹{item.price} each</Text>
+                </View>
+
+                <View style={styles.qtyContainer}>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() =>
+                      dispatch(
+                        updateQuantity({
+                          menuItemId: item.menuItemId,
+                          quantity: item.quantity - 1,
+                        })
+                      )
+                    }
+                  >
+                    <Text style={styles.qtyText}>−</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.qtyVal}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() =>
+                      dispatch(
+                        updateQuantity({
+                          menuItemId: item.menuItemId,
+                          quantity: item.quantity + 1,
+                        })
+                      )
+                    }
+                  >
+                    <Text style={styles.qtyText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.itemTotal}>₹{item.price * item.quantity}</Text>
               </View>
+            ))}
+          </Card>
 
-              <View style={styles.qtyContainer}>
+          {/* Meal Timing & Delivery Options */}
+          <Card style={styles.card}>
+            <Text style={styles.cardHeading}>Meal Timing</Text>
+            <View style={styles.optionRow}>
+              {MEAL_TIMINGS.map((timing) => (
                 <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() =>
-                    dispatch(
-                      updateQuantity({
-                        menuItemId: item.menuItemId,
-                        quantity: item.quantity - 1,
-                      })
-                    )
-                  }
-                >
-                  <Text style={styles.qtyText}>−</Text>
-                </TouchableOpacity>
-                <Text style={styles.qtyVal}>{item.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() =>
-                    dispatch(
-                      updateQuantity({
-                        menuItemId: item.menuItemId,
-                        quantity: item.quantity + 1,
-                      })
-                    )
-                  }
-                >
-                  <Text style={styles.qtyText}>+</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.itemTotal}>₹{item.price * item.quantity}</Text>
-            </View>
-          ))}
-        </Card>
-
-        {/* Meal Timing & Delivery Options */}
-        <Card style={styles.card}>
-          <Text style={styles.cardHeading}>Meal Timing</Text>
-          <View style={styles.optionRow}>
-            {['lunch', 'dinner'].map((timing) => (
-              <TouchableOpacity
-                key={timing}
-                onPress={() => setMealTiming(timing)}
-                style={[
-                  styles.optionBtn,
-                  mealTiming === timing && styles.activeOptionBtn,
-                ]}
-              >
-                <Text
+                  key={timing.key}
+                  onPress={() => setMealTiming(timing.key)}
                   style={[
-                    styles.optionText,
-                    mealTiming === timing && styles.activeOptionText,
+                    styles.optionBtn,
+                    mealTiming === timing.key && styles.activeOptionBtn,
                   ]}
                 >
-                  {timing === 'lunch' ? '☀️ Lunch' : '🌙 Dinner'}
+                  <Text
+                    style={[
+                      styles.optionText,
+                      mealTiming === timing.key && styles.activeOptionText,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {timing.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.cardHeading, { marginTop: 16 }]}>Delivery Option</Text>
+            {noFulfillmentAvailable ? (
+              <View style={styles.unavailableBox}>
+                <Text style={styles.unavailableText}>
+                  This tiffin provider has currently paused both doorstep delivery and kitchen pickup.
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              </View>
+            ) : (
+              <View style={styles.optionRow}>
+                {deliveryAvailable && (
+                  <TouchableOpacity
+                    onPress={() => setDeliveryType('delivery')}
+                    style={[
+                      styles.optionBtn,
+                      deliveryType === 'delivery' && styles.activeOptionBtn,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        deliveryType === 'delivery' && styles.activeOptionText,
+                      ]}
+                    >
+                      🛵 Doorstep Delivery
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
-          <Text style={[styles.cardHeading, { marginTop: 14 }]}>Delivery Option</Text>
-          <View style={styles.optionRow}>
-            <TouchableOpacity
-              onPress={() => setDeliveryType('delivery')}
-              style={[
-                styles.optionBtn,
-                deliveryType === 'delivery' && styles.activeOptionBtn,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  deliveryType === 'delivery' && styles.activeOptionText,
-                ]}
-              >
-                🛵 Doorstep Delivery
-              </Text>
-            </TouchableOpacity>
+                {pickupAvailable && (
+                  <TouchableOpacity
+                    onPress={() => setDeliveryType('pickup')}
+                    style={[
+                      styles.optionBtn,
+                      deliveryType === 'pickup' && styles.activeOptionBtn,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        deliveryType === 'pickup' && styles.activeOptionText,
+                      ]}
+                    >
+                      🚶 Kitchen Pickup
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
-            <TouchableOpacity
-              onPress={() => setDeliveryType('pickup')}
-              style={[
-                styles.optionBtn,
-                deliveryType === 'pickup' && styles.activeOptionBtn,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  deliveryType === 'pickup' && styles.activeOptionText,
-                ]}
-              >
-                🚶 Kitchen Pickup
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {deliveryAvailable && deliveryType === 'delivery' && (
+              <Input
+                label="Delivery Address"
+                placeholder="Flat No, Building, Area"
+                value={deliveryAddress}
+                onChangeText={(text) => {
+                  setAddressEdited(true);
+                  setDeliveryAddress(text);
+                }}
+                style={{ marginTop: 14 }}
+              />
+            )}
 
-          {deliveryType === 'delivery' && (
             <Input
-              label="Delivery Address"
-              placeholder="Flat No, Building, Area"
-              value={deliveryAddress}
-              onChangeText={setDeliveryAddress}
-              style={{ marginTop: 14 }}
+              label="Cooking / Delivery Instructions"
+              placeholder="e.g. Less oil, ring doorbell"
+              value={notes}
+              onChangeText={setNotes}
+              style={{ marginTop: 8 }}
             />
-          )}
+          </Card>
 
-          <Input
-            label="Cooking / Delivery Instructions"
-            placeholder="e.g. Less oil, ring doorbell"
-            value={notes}
-            onChangeText={setNotes}
-            style={{ marginTop: 8 }}
+          {/* Bill Breakdown */}
+          <Card style={styles.card}>
+            <Text style={styles.cardHeading}>Bill Details</Text>
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Item Total</Text>
+              <Text style={styles.billVal}>₹{subtotal}</Text>
+            </View>
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Delivery Fee</Text>
+              <Text style={[styles.billVal, { color: COLORS.secondary }]}>FREE</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.billRow}>
+              <Text style={styles.grandLabel}>To Pay</Text>
+              <Text style={styles.grandVal}>₹{grandTotal}</Text>
+            </View>
+          </Card>
+
+          <Button
+            title={`Place Order • ₹${grandTotal}`}
+            onPress={handlePlaceOrder}
+            loading={submitting}
+            disabled={noFulfillmentAvailable}
+            style={{ marginBottom: 30 }}
           />
-        </Card>
-
-        {/* Bill Breakdown */}
-        <Card style={styles.card}>
-          <Text style={styles.cardHeading}>Bill Details</Text>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Item Total</Text>
-            <Text style={styles.billVal}>₹{subtotal}</Text>
-          </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Delivery Fee</Text>
-            <Text style={[styles.billVal, { color: COLORS.secondary }]}>FREE</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.billRow}>
-            <Text style={styles.grandLabel}>To Pay</Text>
-            <Text style={styles.grandVal}>₹{grandTotal}</Text>
-          </View>
-        </Card>
-
-        <Button
-          title={`Place Order • ₹${grandTotal}`}
-          onPress={handlePlaceOrder}
-          loading={submitting}
-          style={{ marginBottom: 30 }}
-        />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -362,21 +451,32 @@ const styles = StyleSheet.create({
   optionBtn: {
     flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: 'center',
     borderRadius: SIZES.radiusSm,
     backgroundColor: COLORS.chipBg,
-    marginHorizontal: 4,
+    marginHorizontal: 3,
   },
   activeOptionBtn: {
     backgroundColor: COLORS.primary,
   },
   optionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },
   activeOptionText: {
     color: '#FFF',
+  },
+  unavailableBox: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: SIZES.radiusSm,
+    padding: 12,
+  },
+  unavailableText: {
+    color: '#C62828',
+    fontSize: 13,
+    fontWeight: '600',
   },
   billRow: {
     flexDirection: 'row',
@@ -410,4 +510,3 @@ const styles = StyleSheet.create({
 });
 
 export default CustomerCartScreen;
-

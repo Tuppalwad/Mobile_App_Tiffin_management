@@ -26,9 +26,11 @@ import { ownerApi } from '../../api/ownerApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerPaymentsScreen = () => {
+  const [activeTab, setActiveTab] = useState('customers'); // 'customers' | 'transactions'
   const [payments, setPayments] = useState([]);
   const [summary, setSummary] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [customerFilter, setCustomerFilter] = useState('all'); // 'all' | 'pending' | 'advance'
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -87,8 +89,11 @@ export const OwnerPaymentsScreen = () => {
     }
   };
 
-  const handleOpenModal = () => {
+  const handleOpenModal = (customerToSelect = null) => {
     fetchData();
+    if (customerToSelect) {
+      handleSelectCustomer(customerToSelect);
+    }
     setModalVisible(true);
   };
 
@@ -136,6 +141,92 @@ export const OwnerPaymentsScreen = () => {
     }
   };
 
+  const filteredCustomers = customers.filter((c) => {
+    if (customerFilter === 'pending') {
+      return (c.total_pending || 0) > 0;
+    }
+    if (customerFilter === 'advance') {
+      return (c.total_advance || 0) > 0;
+    }
+    return true;
+  });
+
+  const renderCustomerItem = ({ item }) => {
+    const custName = item.customer?.name || item.name || 'Customer';
+    const custPhone = item.customer?.phone || item.phone || '';
+    const hasPending = (item.total_pending || 0) > 0;
+    const hasAdvance = (item.total_advance || 0) > 0;
+
+    return (
+      <Card style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.customerName}>{custName}</Text>
+            {custPhone ? <Text style={styles.customerSubText}>📞 {custPhone}</Text> : null}
+            {item.plan?.name && (
+              <Text style={styles.customerSubText}>🍱 Plan: {item.plan.name}</Text>
+            )}
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            {hasPending ? (
+              <View style={styles.badgeDue}>
+                <Text style={styles.badgeDueText}>Due ₹{item.total_pending}</Text>
+              </View>
+            ) : hasAdvance ? (
+              <View style={styles.badgeAdv}>
+                <Text style={styles.badgeAdvText}>Adv ₹{item.total_advance}</Text>
+              </View>
+            ) : (
+              <Badge text="All Clear" status="success" />
+            )}
+          </View>
+        </View>
+
+        {/* Detailed Breakdown */}
+        <View style={styles.balanceBreakdown}>
+          <View style={styles.breakdownCol}>
+            <Text style={styles.breakdownLabel}>Orders Balance</Text>
+            {(item.order_advance_balance || 0) > 0 ? (
+              <Text style={[styles.breakdownVal, { color: COLORS.secondary }]}>
+                ₹{item.order_advance_balance} Adv
+              </Text>
+            ) : (item.pending_orders_amount || 0) > 0 ? (
+              <Text style={[styles.breakdownVal, { color: COLORS.error }]}>
+                ₹{item.pending_orders_amount} Due
+              </Text>
+            ) : (
+              <Text style={styles.breakdownVal}>₹0</Text>
+            )}
+          </View>
+
+          <View style={styles.breakdownDivider} />
+
+          <View style={styles.breakdownCol}>
+            <Text style={styles.breakdownLabel}>Subscription</Text>
+            {(item.sub_advance_amount || 0) > 0 ? (
+              <Text style={[styles.breakdownVal, { color: COLORS.secondary }]}>
+                ₹{item.sub_advance_amount} Adv
+              </Text>
+            ) : (item.pending_sub_amount || 0) > 0 ? (
+              <Text style={[styles.breakdownVal, { color: COLORS.warning }]}>
+                ₹{item.pending_sub_amount} Due
+              </Text>
+            ) : (
+              <Text style={styles.breakdownVal}>₹0</Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.cardPayBtn}
+            onPress={() => handleOpenModal(item)}
+          >
+            <Text style={styles.cardPayBtnText}>+ Pay</Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
+    );
+  };
+
   const renderPayment = ({ item }) => {
     return (
       <Card style={styles.card}>
@@ -179,13 +270,50 @@ export const OwnerPaymentsScreen = () => {
         </View>
       </View>
 
+      {/* Tab Selector */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'customers' && styles.activeTabItem]}
+          onPress={() => setActiveTab('customers')}
+        >
+          <Text style={[styles.tabText, activeTab === 'customers' && styles.activeTabText]}>
+            👥 Customer Accounts
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'transactions' && styles.activeTabItem]}
+          onPress={() => setActiveTab('transactions')}
+        >
+          <Text style={[styles.tabText, activeTab === 'transactions' && styles.activeTabText]}>
+            🧾 Transactions
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Action Header & Filters */}
       <View style={styles.actionHeader}>
-        <Text style={styles.sectionTitle}>Payment Transactions</Text>
+        {activeTab === 'customers' ? (
+          <View style={styles.filterChipRow}>
+            {['all', 'pending', 'advance'].map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.filterChip, customerFilter === f && styles.activeFilterChip]}
+                onPress={() => setCustomerFilter(f)}
+              >
+                <Text style={[styles.filterChipText, customerFilter === f && styles.activeFilterChipText]}>
+                  {f === 'all' ? 'All' : f === 'pending' ? 'Pending Due' : 'Advance Paid'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.sectionTitle}>Payment Transactions</Text>
+        )}
         <TouchableOpacity
           style={styles.recordBtn}
-          onPress={handleOpenModal}
+          onPress={() => handleOpenModal()}
         >
-          <Text style={styles.recordBtnText}>+ Record Cash/UPI</Text>
+          <Text style={styles.recordBtnText}>+ Record Payment</Text>
         </TouchableOpacity>
       </View>
 
@@ -193,6 +321,23 @@ export const OwnerPaymentsScreen = () => {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
+      ) : activeTab === 'customers' ? (
+        <FlatList
+          data={filteredCustomers}
+          keyExtractor={(item) => (item.customer_id || item.id).toString()}
+          renderItem={renderCustomerItem}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>👥</Text>
+              <Text style={styles.emptyTitle}>No Customers Found</Text>
+              <Text style={styles.emptySubtitle}>
+                Customers with active subscriptions or meal orders will appear here with live advance & due balances.
+              </Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={payments}
@@ -280,12 +425,24 @@ export const OwnerPaymentsScreen = () => {
                     <Text style={styles.selectedCustomerPhone}>
                       📞 {selectedCustomer.customer?.phone || selectedCustomer.phone || 'No phone'}
                     </Text>
+                    {selectedCustomer.order_advance_balance > 0 && (
+                      <Text style={styles.advHintText}>
+                        💰 Order Advance Available: ₹{selectedCustomer.order_advance_balance}
+                      </Text>
+                    )}
                   </View>
                   {selectedCustomer.total_pending > 0 ? (
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={styles.pendingLabelText}>Pending Due</Text>
                       <Text style={styles.pendingAmountText}>
                         ₹{selectedCustomer.total_pending}
+                      </Text>
+                    </View>
+                  ) : selectedCustomer.total_advance > 0 ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.pendingLabelText, { color: COLORS.secondary }]}>Advance Paid</Text>
+                      <Text style={[styles.pendingAmountText, { color: COLORS.secondary }]}>
+                        ₹{selectedCustomer.total_advance}
                       </Text>
                     </View>
                   ) : (
@@ -624,6 +781,127 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#B7791F',
     fontWeight: '600',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: COLORS.surface,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTabItem: {
+    borderBottomColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  activeTabText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: SIZES.radiusFull,
+    backgroundColor: COLORS.chipBg,
+    marginRight: 6,
+  },
+  activeFilterChip: {
+    backgroundColor: COLORS.primary,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  activeFilterChipText: {
+    color: '#FFF',
+  },
+  customerSubText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  badgeDue: {
+    backgroundColor: '#FFEAEA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: SIZES.radiusSm,
+  },
+  badgeDueText: {
+    color: COLORS.error,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  badgeAdv: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: SIZES.radiusSm,
+  },
+  badgeAdvText: {
+    color: COLORS.secondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  balanceBreakdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: SIZES.radiusSm,
+    padding: 10,
+    marginTop: 10,
+  },
+  breakdownCol: {
+    flex: 1,
+  },
+  breakdownDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.divider,
+    marginHorizontal: 8,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  breakdownVal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  cardPayBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: SIZES.radiusSm,
+    marginLeft: 6,
+  },
+  cardPayBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  advHintText: {
+    fontSize: 11,
+    color: COLORS.secondary,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
 

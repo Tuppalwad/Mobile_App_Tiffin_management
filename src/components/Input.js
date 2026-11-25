@@ -20,11 +20,14 @@ export const Input = ({
   prefix,
   style,
   inputStyle,
+  editable = true,
+  onFocus,
+  ...rest
 }) => {
   return (
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputWrapper, error && styles.inputError]}>
+      <View style={[styles.inputWrapper, error && styles.inputError, !editable && styles.inputDisabled]}>
         {prefix && <Text style={styles.prefix}>{prefix}</Text>}
         <TextInput
           value={value}
@@ -36,11 +39,14 @@ export const Input = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           maxLength={maxLength}
+          editable={editable}
+          onFocus={onFocus}
           style={[
             styles.input,
             multiline && { height: 24 * numberOfLines, textAlignVertical: 'top' },
             inputStyle,
           ]}
+          {...rest}
         />
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -67,6 +73,9 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: 14,
   },
+  inputDisabled: {
+    backgroundColor: '#F5F5F5',
+  },
   inputError: {
     borderColor: COLORS.danger,
   },
@@ -90,4 +99,3 @@ const styles = StyleSheet.create({
 });
 
 export default Input;
-

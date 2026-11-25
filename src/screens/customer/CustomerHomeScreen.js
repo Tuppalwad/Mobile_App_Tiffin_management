@@ -22,6 +22,7 @@ import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { notificationApi } from '../../api/notificationApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
+import { formatKitchenHours } from '../../utils/timeUtils';
 
 export const CustomerHomeScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
@@ -73,6 +74,18 @@ export const CustomerHomeScreen = ({ navigation }) => {
   };
 
   const renderProvider = ({ item }) => {
+    const canDeliver = item.delivery_available !== false;
+    const canPickup = item.pickup_available !== false;
+    const fulfillmentLabel =
+      canDeliver && canPickup
+        ? 'Delivery & Pickup'
+        : canDeliver
+        ? 'Delivery Only'
+        : canPickup
+        ? 'Pickup Only'
+        : 'Unavailable';
+    const kitchenHours = formatKitchenHours(item.opening_time, item.closing_time);
+
     return (
       <TouchableOpacity
         activeOpacity={0.88}
@@ -87,9 +100,10 @@ export const CustomerHomeScreen = ({ navigation }) => {
               <Text style={styles.providerName}>{item.business_name}</Text>
               <Text style={styles.providerArea}>
                 📍 {item.city || 'Nearby'} {item.service_radius_km ? `• Within ${item.service_radius_km} km` : ''}
+                {kitchenHours ? ` • ⏰ ${kitchenHours}` : ''}
               </Text>
               <View style={styles.badgeRow}>
-                <Badge text={item.delivery_available ? 'Delivery Available' : 'Pickup Only'} status="active" />
+                <Badge text={fulfillmentLabel} status="active" />
                 <Text style={styles.menuMetaText}>
                   {item.menuItemCount || 0} Dishes • {item.planCount || 0} Plans
                 </Text>

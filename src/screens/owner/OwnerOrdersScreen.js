@@ -123,6 +123,14 @@ export const OwnerOrdersScreen = () => {
   };
 
   const renderOrderItem = ({ item }) => {
+    const isPickup = item.delivery_type === 'pickup';
+    const customerDeliveryAddress =
+      item.delivery_address ||
+      item.customer?.customerProfile?.delivery_address ||
+      item.customer?.customerProfile?.address ||
+      '';
+    const canCancelOrder = ['order_received', 'confirmed', 'preparing'].includes(item.order_status);
+
     return (
       <Card style={styles.orderCard}>
         <View style={styles.orderHeader}>
@@ -135,11 +143,18 @@ export const OwnerOrdersScreen = () => {
 
         {/* Customer Info */}
         <View style={styles.customerBox}>
-          <Text style={styles.customerName}>👤 {item.customer?.name || 'Customer'}</Text>
+          <View style={styles.customerTopRow}>
+            <Text style={styles.customerName}>👤 {item.customer?.name || 'Customer'}</Text>
+            <View style={[styles.deliveryTypePill, isPickup ? styles.pickupPill : styles.deliveryPill]}>
+              <Text style={[styles.deliveryTypeText, isPickup ? styles.pickupPillText : styles.deliveryPillText]}>
+                {isPickup ? '🚶 Kitchen Pickup' : '🛵 Doorstep Delivery'}
+              </Text>
+            </View>
+          </View>
           <Text style={styles.customerPhone}>📞 {item.customer?.phone}</Text>
-          {item.delivery_address && (
-            <Text style={styles.customerAddress}>📍 {item.delivery_address}</Text>
-          )}
+          {!isPickup && customerDeliveryAddress ? (
+            <Text style={styles.customerAddress}>📍 {customerDeliveryAddress}</Text>
+          ) : null}
         </View>
 
         {/* Items List */}
@@ -178,7 +193,7 @@ export const OwnerOrdersScreen = () => {
         <View style={styles.statusButtonsRow}>
           {item.order_status === 'order_received' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#FF9800', flex: 1, marginRight: 8 }]}
+              style={[styles.statusBtn, { backgroundColor: '#FF9800', flex: 1, marginRight: canCancelOrder ? 8 : 0 }]}
               onPress={() => handleUpdateStatus(item.id, 'preparing')}
             >
               <Text style={styles.statusBtnText}>Start Preparing 🍲</Text>
@@ -187,39 +202,43 @@ export const OwnerOrdersScreen = () => {
 
           {item.order_status === 'preparing' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#1976D2', flex: 1, marginRight: 8 }]}
+              style={[styles.statusBtn, { backgroundColor: '#1976D2', flex: 1, marginRight: canCancelOrder ? 8 : 0 }]}
               onPress={() => handleUpdateStatus(item.id, 'tiffin_ready')}
             >
               <Text style={styles.statusBtnText}>Tiffin Ready 🍱</Text>
             </TouchableOpacity>
           )}
 
-          {item.order_status === 'tiffin_ready' && (
+          {item.order_status === 'tiffin_ready' && !isPickup && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#0288D1', flex: 1, marginRight: 8 }]}
+              style={[styles.statusBtn, { backgroundColor: '#0288D1', flex: 1 }]}
               onPress={() => handleUpdateStatus(item.id, 'out_for_delivery')}
             >
               <Text style={styles.statusBtnText}>Out for Delivery 🛵</Text>
             </TouchableOpacity>
           )}
 
+          {item.order_status === 'tiffin_ready' && isPickup && (
+            <TouchableOpacity
+              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1 }]}
+              onPress={() => handleUpdateStatus(item.id, 'delivered')}
+            >
+              <Text style={styles.statusBtnText}>Mark Picked Up ✅</Text>
+            </TouchableOpacity>
+          )}
+
           {item.order_status === 'out_for_delivery' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1, marginRight: 8 }]}
+              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1 }]}
               onPress={() => handleUpdateStatus(item.id, 'delivered')}
             >
               <Text style={styles.statusBtnText}>Mark Delivered ✅</Text>
             </TouchableOpacity>
           )}
 
-          {item.order_status !== 'delivered' && item.order_status !== 'cancelled' && (
+          {canCancelOrder && (
             <TouchableOpacity
-              style={[
-                styles.cancelBtn,
-                ['order_received', 'preparing', 'tiffin_ready', 'out_for_delivery'].includes(item.order_status)
-                  ? { flex: 0.8 }
-                  : { flex: 1 }
-              ]}
+              style={[styles.cancelBtn, { flex: 0.8 }]}
               onPress={() => handleOpenCancelModal(item)}
             >
               <Text style={styles.cancelBtnText}>Cancel ❌</Text>
@@ -429,6 +448,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  customerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 2,
+  },
+  deliveryTypePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  pickupPill: {
+    backgroundColor: '#E3F2FD',
+  },
+  deliveryPill: {
+    backgroundColor: '#E8F5E9',
+  },
+  deliveryTypeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  pickupPillText: {
+    color: '#1565C0',
+  },
+  deliveryPillText: {
+    color: '#2E7D32',
   },
   customerPhone: {
     fontSize: 12,

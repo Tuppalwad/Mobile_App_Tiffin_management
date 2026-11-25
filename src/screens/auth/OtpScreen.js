@@ -8,6 +8,9 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
   TouchableOpacity,
   Alert,
 } from 'react-native';
@@ -62,57 +65,58 @@ export const OtpScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.title}>Enter OTP</Text>
-        <Text style={styles.subtitle}>
-          We sent a 6-digit verification code to{' '}
-          <Text style={styles.boldPhone}>+91 {phone}</Text>
-        </Text>
+          <Text style={styles.title}>Enter OTP</Text>
+          <Text style={styles.subtitle}>
+            We sent a 6-digit verification code to{' '}
+            <Text style={styles.boldPhone}>+91 {phone}</Text>
+          </Text>
 
-        <View style={styles.inputCard}>
-          <Input
-            label="Verification Code"
-            placeholder="• • • • • •"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-            maxLength={6}
-            error={error}
-            inputStyle={styles.otpInput}
-          />
+          <View style={styles.inputCard}>
+            <Input
+              label="Verification Code"
+              placeholder="• • • • • •"
+              value={otp}
+              onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              error={error}
+              inputStyle={styles.otpInput}
+            />
 
-          <Button
-            title="Verify & Continue"
-            onPress={handleVerify}
-            loading={isLoading}
-            style={styles.verifyButton}
-          />
+            <Button
+              title="Verify & Continue"
+              onPress={handleVerify}
+              loading={isLoading}
+              style={styles.verifyButton}
+            />
 
-          <View style={styles.resendRow}>
-            <Text style={styles.resendText}>Didn't receive the code? </Text>
-            <TouchableOpacity onPress={handleResend} disabled={resending}>
-              <Text style={styles.resendLink}>
-                {resending ? 'Sending...' : 'Resend OTP'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.resendRow}>
+              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              <TouchableOpacity onPress={handleResend} disabled={resending}>
+                <Text style={styles.resendLink}>
+                  {resending ? 'Sending...' : 'Resend OTP'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        {/* {receivedOtp ? (
-          <View style={styles.hintBox}>
-            <Text style={styles.hintText}>
-              ⚡ Dev Master OTP Auto-filled: <Text style={{ fontWeight: '700' }}>{otp}</Text>
-            </Text>
-          </View>
-        ) : null} */}
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 24,
-    flex: 1,
+    flexGrow: 1,
   },
   backButton: {
     marginBottom: 20,
@@ -179,20 +183,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
-  hintBox: {
-    marginTop: 20,
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: SIZES.radiusSm,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-    alignItems: 'center',
-  },
-  hintText: {
-    color: '#2E7D32',
-    fontSize: 13,
-  },
 });
 
 export default OtpScreen;
-

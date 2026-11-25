@@ -3,7 +3,7 @@
  * Shows kitchen profile, full menu, subscription plans, and add-to-cart actions
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { addToCart, updateQuantity } from '../../store/slices/cartSlice';
+import { formatKitchenHours } from '../../utils/timeUtils';
 
 export const ProviderDetailScreen = ({ route, navigation }) => {
   const { providerId } = route.params;
@@ -31,20 +33,22 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(false);
 
-  useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const response = await customerApi.getProviderDetails(providerId);
-        setData(response.data);
-      } catch (err) {
-        Alert.alert('Error', err.message || 'Could not load provider details.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const fetchDetails = async () => {
+        try {
+          const response = await customerApi.getProviderDetails(providerId);
+          setData(response.data);
+        } catch (err) {
+          Alert.alert('Error', err.message || 'Could not load provider details.');
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchDetails();
-  }, [providerId]);
+      fetchDetails();
+    }, [providerId])
+  );
 
   const handleSubscribe = async (plan) => {
     Alert.alert(
@@ -93,6 +97,9 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
   }
 
   const { provider, menu = [], plans = [] } = data || {};
+  const kitchenHours = formatKitchenHours(provider?.opening_time, provider?.closing_time);
+  const canDeliver = provider?.delivery_available !== false;
+  const canPickup = provider?.pickup_available !== false;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -111,8 +118,15 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
           ) : null}
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaBadge}>🛵 Delivery Available</Text>
-            <Text style={styles.metaBadge}>⏰ 08:00 AM - 09:30 PM</Text>
+            {canDeliver && (
+              <Text style={styles.metaBadge}>🛵 Doorstep Delivery</Text>
+            )}
+            {canPickup && (
+              <Text style={styles.metaBadge}>🚶 Kitchen Pickup</Text>
+            )}
+            {kitchenHours ? (
+              <Text style={styles.metaBadge}>⏰ {kitchenHours}</Text>
+            ) : null}
           </View>
         </Card>
 
@@ -308,6 +322,7 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 12,
   },
   metaBadge: {
@@ -318,6 +333,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: SIZES.radiusSm,
     marginRight: 8,
+    marginBottom: 6,
   },
   tabContainer: {
     flexDirection: 'row',

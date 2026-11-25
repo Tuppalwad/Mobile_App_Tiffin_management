@@ -3,7 +3,7 @@
  * Allows users to enter mobile number and request OTP
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
   Alert,
 } from 'react-native';
 import { Button } from '../../components/Button';
@@ -23,6 +24,31 @@ export const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const handleSendOtp = async () => {
     if (!phone || phone.replace(/\D/g, '').length < 10) {
@@ -48,10 +74,20 @@ export const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 24}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={[
+            styles.scrollContent,
+            keyboardVisible && styles.scrollContentKeyboardOpen,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
+        >
           <View style={styles.header}>
             <Text style={styles.logo}>🍱</Text>
             <Text style={styles.title}>Homemade Tiffin</Text>
@@ -70,8 +106,13 @@ export const LoginScreen = ({ navigation }) => {
               prefix="+91"
               value={phone}
               onChangeText={(text) => {
-                setPhone(text);
+                setPhone(text.replace(/[^0-9]/g, '').slice(0, 10));
                 if (error) setError('');
+              }}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 150);
               }}
               keyboardType="phone-pad"
               maxLength={10}
@@ -85,23 +126,6 @@ export const LoginScreen = ({ navigation }) => {
               style={styles.button}
             />
           </View>
-
-          {/* Quick Demo Switcher Hint */}
-          {/* <View style={styles.demoBox}>
-            <Text style={styles.demoTitle}>💡 Quick Test Accounts:</Text>
-            <Text
-              style={styles.demoItem}
-              onPress={() => setPhone('9876543210')}
-            >
-              • Owner Demo: <Text style={styles.demoBold}>9876543210</Text>
-            </Text>
-            <Text
-              style={styles.demoItem}
-              onPress={() => setPhone('9123456789')}
-            >
-              • Customer Demo: <Text style={styles.demoBold}>9123456789</Text>
-            </Text>
-          </View> */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -120,6 +144,11 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     flexGrow: 1,
+  },
+  scrollContentKeyboardOpen: {
+    justifyContent: 'flex-start',
+    paddingTop: 28,
+    paddingBottom: 32,
   },
   header: {
     alignItems: 'center',
@@ -158,29 +187,6 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
   },
-  demoBox: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#FFF8E1',
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: '#FFE082',
-  },
-  demoTitle: {
-    fontWeight: '700',
-    color: '#8D6E63',
-    marginBottom: 6,
-  },
-  demoItem: {
-    color: '#5D4037',
-    fontSize: 13,
-    marginVertical: 2,
-  },
-  demoBold: {
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
 });
 
 export default LoginScreen;
-

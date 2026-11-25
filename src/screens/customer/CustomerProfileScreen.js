@@ -9,16 +9,19 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Card } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
-import { logoutThunk, selectRoleThunk } from '../../store/slices/authSlice';
+import { logoutThunk, selectRoleThunk, updateUser } from '../../store/slices/authSlice';
 
 export const CustomerProfileScreen = () => {
   const dispatch = useDispatch();
@@ -56,15 +59,32 @@ export const CustomerProfileScreen = () => {
   }, []);
 
   const handleSaveProfile = async () => {
+    const trimmedPincode = pincode.trim();
+    if (trimmedPincode && !/^\d{6}$/.test(trimmedPincode)) {
+      Alert.alert('Invalid Pincode', 'Pincode must be exactly 6 digits.');
+      return;
+    }
+
     setSaving(true);
     try {
-      await customerApi.updateProfile({
-        name,
-        delivery_address: deliveryAddress,
-        city,
-        pincode,
-        food_preferences: foodPreferences,
+      const response = await customerApi.updateProfile({
+        name: name.trim(),
+        delivery_address: deliveryAddress.trim(),
+        city: city.trim(),
+        pincode: trimmedPincode,
+        food_preferences: foodPreferences.trim(),
       });
+
+      const updatedProfile = response.data;
+      const updatedUserPayload = {
+        name: name.trim() || user?.name,
+        customerProfile: updatedProfile,
+      };
+      dispatch(updateUser(updatedUserPayload));
+      await AsyncStorage.setItem(
+        'user_info',
+        JSON.stringify({ ...user, ...updatedUserPayload })
+      ).catch(() => null);
 
       setSaving(false);
       Alert.alert('Saved', 'Your profile details have been updated.');
@@ -107,86 +127,95 @@ export const CustomerProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>My Profile</Text>
-          <Text style={styles.subtitle}>Manage your delivery address & dietary preferences</Text>
-        </View>
-
-        <Card style={styles.card}>
-          <Text style={styles.sectionHeading}>Personal Details</Text>
-          <Input
-            label="Full Name"
-            placeholder="e.g. Rahul Sharma"
-            value={name}
-            onChangeText={setName}
-          />
-
-          <Input
-            label="Phone Number"
-            value={user?.phone || ''}
-            editable={false}
-            inputStyle={{ color: COLORS.textMuted }}
-          />
-
-          <Input
-            label="Default Delivery Address"
-            placeholder="Flat / Building, Street, Landmark"
-            value={deliveryAddress}
-            onChangeText={setDeliveryAddress}
-            multiline
-            numberOfLines={2}
-          />
-
-          <View style={styles.row}>
-            <Input
-              label="City"
-              placeholder="e.g. Jaipur"
-              value={city}
-              onChangeText={setCity}
-              style={{ flex: 1, marginRight: 8 }}
-            />
-            <Input
-              label="Pincode"
-              placeholder="302020"
-              value={pincode}
-              onChangeText={setPincode}
-              keyboardType="numeric"
-              style={{ flex: 1, marginLeft: 8 }}
-            />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>My Profile</Text>
+            <Text style={styles.subtitle}>Manage your delivery address & dietary preferences</Text>
           </View>
 
-          <Input
-            label="Dietary & Cooking Preferences"
-            placeholder="e.g. No onion no garlic on Tuesdays, less oily, Jain option preferred"
-            value={foodPreferences}
-            onChangeText={setFoodPreferences}
-            multiline
-            numberOfLines={3}
+          <Card style={styles.card}>
+            <Text style={styles.sectionHeading}>Personal Details</Text>
+            <Input
+              label="Full Name"
+              placeholder="e.g. Rahul Sharma"
+              value={name}
+              onChangeText={setName}
+            />
+
+            <Input
+              label="Phone Number"
+              value={user?.phone || ''}
+              editable={false}
+              inputStyle={{ color: COLORS.textMuted }}
+            />
+
+            <Input
+              label="Default Delivery Address"
+              placeholder="Flat / Building, Street, Landmark"
+              value={deliveryAddress}
+              onChangeText={setDeliveryAddress}
+              multiline
+              numberOfLines={2}
+            />
+
+            <View style={styles.row}>
+              <Input
+                label="City"
+                placeholder="e.g. Jaipur"
+                value={city}
+                onChangeText={setCity}
+                style={{ flex: 1, marginRight: 8 }}
+              />
+              <Input
+                label="Pincode"
+                placeholder="302020"
+                value={pincode}
+                onChangeText={(text) => setPincode(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                style={{ flex: 1, marginLeft: 8 }}
+              />
+            </View>
+
+            <Input
+              label="Dietary & Cooking Preferences"
+              placeholder="e.g. No onion no garlic on Tuesdays, less oily, Jain option preferred"
+              value={foodPreferences}
+              onChangeText={setFoodPreferences}
+              multiline
+              numberOfLines={3}
+            />
+          </Card>
+
+          <Button
+            title="Save Profile"
+            onPress={handleSaveProfile}
+            loading={saving}
+            style={{ marginBottom: 16 }}
           />
-        </Card>
 
-        <Button
-          title="Save Profile"
-          onPress={handleSaveProfile}
-          loading={saving}
-          style={{ marginBottom: 16 }}
-        />
+          <Button
+            title="Switch to Owner / Chef Mode"
+            variant="outline"
+            onPress={handleSwitchToOwner}
+            style={{ marginBottom: 12 }}
+          />
 
-        <Button
-          title="Switch to Owner / Chef Mode"
-          variant="outline"
-          onPress={handleSwitchToOwner}
-          style={{ marginBottom: 12 }}
-        />
-
-        <Button
-          title="Logout"
-          variant="danger"
-          onPress={handleLogout}
-          style={{ marginBottom: 30 }}
-        />
-      </ScrollView>
+          <Button
+            title="Logout"
+            variant="danger"
+            onPress={handleLogout}
+            style={{ marginBottom: 30 }}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -230,4 +259,3 @@ const styles = StyleSheet.create({
 });
 
 export default CustomerProfileScreen;
-
