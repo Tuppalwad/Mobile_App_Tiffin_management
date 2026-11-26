@@ -18,6 +18,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
@@ -186,7 +187,7 @@ export const CustomerSubscriptionsScreen = () => {
 
       {/* Skip Request Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Skip Tiffin Meal</Text>
@@ -224,7 +225,7 @@ export const CustomerSubscriptionsScreen = () => {
               />
             </View>
           </View>
-        </SafeAreaView>
+        </KeyboardModalView>
       </Modal>
     </SafeAreaView>
   );

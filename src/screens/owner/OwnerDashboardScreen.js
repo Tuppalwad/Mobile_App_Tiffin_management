@@ -21,12 +21,14 @@ import { SetupTracker } from '../../components/SetupTracker';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { notificationApi } from '../../api/notificationApi';
+import { chatApi } from '../../api/chatApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const OwnerDashboardScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
   const [stats, setStats] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [menuCount, setMenuCount] = useState(0);
   const [planCount, setPlanCount] = useState(0);
   const [hasProfileDetails, setHasProfileDetails] = useState(false);
@@ -35,9 +37,10 @@ export const OwnerDashboardScreen = ({ navigation }) => {
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [dashRes, notifRes, menuRes, planRes, profRes] = await Promise.all([
+      const [dashRes, notifRes, chatRes, menuRes, planRes, profRes] = await Promise.all([
         ownerApi.getDashboardStats(),
         notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
+        chatApi.getConversations().catch(() => ({ data: [] })),
         ownerApi.getMenuItems().catch(() => ({ data: [] })),
         ownerApi.getPlans().catch(() => ({ data: [] })),
         ownerApi.getProfile().catch(() => ({ data: null })),
@@ -46,6 +49,11 @@ export const OwnerDashboardScreen = ({ navigation }) => {
       if (notifRes?.data) {
         setUnreadCount(notifRes.data.unreadCount || notifRes.data.items?.length || 0);
       }
+      const chatUnread = (chatRes?.data || []).reduce(
+        (sum, c) => sum + (c.unreadCount || 0),
+        0
+      );
+      setUnreadChatCount(chatUnread);
       setMenuCount(menuRes.data?.length || 0);
       setPlanCount(planRes.data?.length || 0);
       const prof = profRes?.data;
@@ -117,25 +125,40 @@ export const OwnerDashboardScreen = ({ navigation }) => {
       >
         {/* Header Greeting */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.businessName}>
+            <Text style={styles.businessName} numberOfLines={1}>
               {user?.ownerProfile?.business_name || 'My Tiffin Service'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.notifBadge}
-            onPress={() => navigation.navigate('Notifications')}
-          >
-            <Text style={{ fontSize: 22 }}>🔔</Text>
-            {unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadBadgeText}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.notifBadge, { marginRight: 10 }]}
+              onPress={() => navigation.navigate('ChatList')}
+            >
+              <Text style={{ fontSize: 21 }}>💬</Text>
+              {unreadChatCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.notifBadge}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Text style={{ fontSize: 22 }}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* First-time Onboarding & Setup Tracker */}

@@ -8,6 +8,7 @@ import { getMessaging } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../api/authApi';
 import { emitNotificationEvent } from './notificationEvents';
+import { chatSocketService } from './chatSocketService';
 
 // Helper to safely get messaging instance
 const getMessagingInstance = () => {
@@ -142,8 +143,15 @@ class NotificationService {
             type: data.type,
           });
 
-          // Show in-app alert banner for user awareness
-          Alert.alert(title, body, [{ text: 'OK' }]);
+          // Skip alert popup if user is currently inside that exact chat conversation
+          const isViewingSameChat =
+            data.type === 'chat' &&
+            Number(data.conversationId) &&
+            chatSocketService.getActiveConversation() === Number(data.conversationId);
+
+          if (!isViewingSameChat) {
+            Alert.alert(title, body, [{ text: 'OK' }]);
+          }
         });
       }
 

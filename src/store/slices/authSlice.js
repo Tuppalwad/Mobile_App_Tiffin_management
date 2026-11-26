@@ -5,6 +5,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../../api/authApi';
+import { chatSocketService } from '../../services/chatSocketService';
 
 // Async Thunks
 export const verifyOtpThunk = createAsyncThunk(
@@ -59,6 +60,7 @@ export const loadStoredAuthThunk = createAsyncThunk(
 
 export const logoutThunk = createAsyncThunk('auth/logout', async () => {
   try {
+    chatSocketService.disconnect();
     await authApi.logout();
   } catch (e) {
     // Ignore error on logout

@@ -21,6 +21,7 @@ import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { notificationApi } from '../../api/notificationApi';
+import { chatApi } from '../../api/chatApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 import { formatKitchenHours } from '../../utils/timeUtils';
 
@@ -31,15 +32,17 @@ export const CustomerHomeScreen = ({ navigation }) => {
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [search, setSearch] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [provRes, subsRes, notifRes] = await Promise.all([
+      const [provRes, subsRes, notifRes, chatRes] = await Promise.all([
         customerApi.getProviders({ search: search.trim() || undefined }),
         customerApi.getSubscriptions({ status: 'active' }),
         notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
+        chatApi.getConversations().catch(() => ({ data: [] })),
       ]);
       setProviders(provRes.data || []);
       if (subsRes.data?.length > 0) {
@@ -50,6 +53,11 @@ export const CustomerHomeScreen = ({ navigation }) => {
       if (notifRes?.data) {
         setUnreadCount(notifRes.data.unreadCount || notifRes.data.items?.length || 0);
       }
+      const chatUnread = (chatRes?.data || []).reduce(
+        (sum, c) => sum + (c.unreadCount || 0),
+        0
+      );
+      setUnreadChatCount(chatUnread);
     } catch (err) {
       console.warn('Customer home fetch error:', err);
     } finally {
@@ -143,6 +151,20 @@ export const CustomerHomeScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={[styles.notifBtn, { marginRight: 10 }]}
+                  onPress={() => navigation.navigate('ChatList')}
+                >
+                  <Text style={{ fontSize: 21 }}>💬</Text>
+                  {unreadChatCount > 0 && (
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartBadgeText}>
+                        {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.notifBtn}
                   onPress={() => navigation.navigate('Notifications')}

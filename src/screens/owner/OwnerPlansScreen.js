@@ -19,6 +19,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 
@@ -198,7 +199,7 @@ export const OwnerPlansScreen = () => {
 
       {/* Create Plan Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Create Subscription Plan</Text>
@@ -279,7 +280,7 @@ export const OwnerPlansScreen = () => {
               />
             </ScrollView>
           </View>
-        </SafeAreaView>
+        </KeyboardModalView>
       </Modal>
     </SafeAreaView>
   );

@@ -20,6 +20,7 @@ import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
+import { chatApi } from '../../api/chatApi';
 import { addToCart, updateQuantity } from '../../store/slices/cartSlice';
 import { formatKitchenHours } from '../../utils/timeUtils';
 
@@ -128,6 +129,27 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
               <Text style={styles.metaBadge}>⏰ {kitchenHours}</Text>
             ) : null}
           </View>
+
+          <TouchableOpacity
+            style={styles.chatChefBtn}
+            onPress={async () => {
+              try {
+                const res = await chatApi.startDirectChat(provider?.user_id || providerId);
+                if (res?.data?.id) {
+                  navigation.navigate('ChatRoom', {
+                    conversationId: res.data.id,
+                    title: provider?.business_name || 'Chef',
+                    type: 'direct',
+                    peer: { id: provider?.user_id || providerId, displayName: provider?.business_name },
+                  });
+                }
+              } catch (err) {
+                Alert.alert('Chat Unavailable', err.message || 'Could not start chat');
+              }
+            }}
+          >
+            <Text style={styles.chatChefBtnText}>💬 Chat with Kitchen / Chef</Text>
+          </TouchableOpacity>
         </Card>
 
         {/* Menu vs Plans Tabs */}
@@ -334,6 +356,20 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusSm,
     marginRight: 8,
     marginBottom: 6,
+  },
+  chatChefBtn: {
+    marginTop: 10,
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: SIZES.radiusSm,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  chatChefBtnText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   tabContainer: {
     flexDirection: 'row',

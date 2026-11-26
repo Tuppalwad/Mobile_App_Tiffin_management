@@ -21,6 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
@@ -367,7 +368,7 @@ export const OwnerPaymentsScreen = () => {
 
       {/* Record Payment Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Record Customer Payment</Text>
@@ -530,7 +531,7 @@ export const OwnerPaymentsScreen = () => {
               />
             </ScrollView>
           </View>
-        </SafeAreaView>
+        </KeyboardModalView>
       </Modal>
     </SafeAreaView>
   );

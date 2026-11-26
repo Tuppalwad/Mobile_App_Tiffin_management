@@ -19,10 +19,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
+import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
+import { chatApi } from '../../api/chatApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 const STATUS_FILTERS = [
@@ -43,6 +45,7 @@ const QUICK_CANCEL_REASONS = [
 ];
 
 export const OwnerOrdersScreen = () => {
+  const navigation = useNavigation();
   const [orders, setOrders] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -155,6 +158,28 @@ export const OwnerOrdersScreen = () => {
           {!isPickup && customerDeliveryAddress ? (
             <Text style={styles.customerAddress}>📍 {customerDeliveryAddress}</Text>
           ) : null}
+          {item.order_status === 'delivered' && item.customer_id && (
+            <TouchableOpacity
+              style={styles.chatCustomerBtn}
+              onPress={async () => {
+                try {
+                  const res = await chatApi.startDirectChat(item.customer_id);
+                  if (res?.data?.id) {
+                    navigation.navigate('ChatRoom', {
+                      conversationId: res.data.id,
+                      title: item.customer?.name || 'Customer',
+                      type: 'direct',
+                      peer: { id: item.customer_id, displayName: item.customer?.name || 'Customer' },
+                    });
+                  }
+                } catch (err) {
+                  Alert.alert('Chat Unavailable', err.message || 'Could not start chat');
+                }
+              }}
+            >
+              <Text style={styles.chatCustomerBtnText}>💬 Chat with Customer</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Items List */}
@@ -308,10 +333,7 @@ export const OwnerOrdersScreen = () => {
         animationType="fade"
         onRequestClose={() => !isCancelling && setCancelModalVisible(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalBackdrop}
-        >
+        <KeyboardModalView style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Cancel Order ❌</Text>
@@ -380,7 +402,7 @@ export const OwnerOrdersScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardModalView>
       </Modal>
     </SafeAreaView>
   );
@@ -486,6 +508,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 4,
+  },
+  chatCustomerBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  chatCustomerBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   itemsBox: {
     borderTopWidth: 1,

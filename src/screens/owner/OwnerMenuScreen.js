@@ -20,6 +20,7 @@ import {
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 
@@ -202,7 +203,7 @@ export const OwnerMenuScreen = () => {
 
       {/* Add Item Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add New Food Item</Text>
@@ -292,7 +293,7 @@ export const OwnerMenuScreen = () => {
               />
             </ScrollView>
           </View>
-        </SafeAreaView>
+        </KeyboardModalView>
       </Modal>
     </SafeAreaView>
   );

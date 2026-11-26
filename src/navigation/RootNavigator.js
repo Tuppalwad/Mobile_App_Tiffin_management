@@ -37,6 +37,8 @@ import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
 
 // Common Screens
 import NotificationsScreen from '../screens/common/NotificationsScreen';
+import ChatListScreen from '../screens/common/ChatListScreen';
+import ChatRoomScreen from '../screens/common/ChatRoomScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -122,20 +124,24 @@ const CustomerTabs = () => {
   );
 };
 
-// --- Owner Stack (with Notifications) ---
+// --- Owner Stack (with Notifications & Chat) ---
 const OwnerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="OwnerTabs" component={OwnerTabNavigator} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="ChatList" component={ChatListScreen} />
+    <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
   </Stack.Navigator>
 );
 
-// --- Customer Stack (with Provider Detail & Notifications) ---
+// --- Customer Stack (with Provider Detail, Notifications & Chat) ---
 const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
     <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="ChatList" component={ChatListScreen} />
+    <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
   </Stack.Navigator>
 );
 
