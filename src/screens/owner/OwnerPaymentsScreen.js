@@ -61,7 +61,11 @@ export const OwnerPaymentsScreen = () => {
           }
           const first = custList[0];
           const firstId = first.customer_id || first.customer?.id || first.id;
-          if (first.total_pending > 0) {
+          if ((first.pending_orders_amount || 0) > 0 && (first.pending_sub_amount || 0) === 0) {
+            setPaymentPurpose('extra_order');
+            setAmount(first.pending_orders_amount.toString());
+          } else if (first.total_pending > 0) {
+            setPaymentPurpose('subscription');
             setAmount(first.total_pending.toString());
           }
           return firstId;
@@ -82,7 +86,11 @@ export const OwnerPaymentsScreen = () => {
   const handleSelectCustomer = (c) => {
     const custId = c.customer_id || c.customer?.id || c.id;
     setSelectedCustomerId(custId);
-    if (c.total_pending > 0) {
+    if ((c.pending_orders_amount || 0) > 0 && (c.pending_sub_amount || 0) === 0) {
+      setPaymentPurpose('extra_order');
+      setAmount(c.pending_orders_amount.toString());
+    } else if (c.total_pending > 0) {
+      setPaymentPurpose('subscription');
       setAmount(c.total_pending.toString());
     } else {
       setAmount('');
