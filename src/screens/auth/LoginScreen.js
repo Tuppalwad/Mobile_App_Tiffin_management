@@ -8,8 +8,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   Keyboard,
@@ -24,25 +22,25 @@ export const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setKeyboardVisible(true);
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const height = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(height);
+      if (Platform.OS !== 'ios') {
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 100);
       }
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardVisible(false);
-      }
-    );
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
 
     return () => {
       showSub.remove();
@@ -71,23 +69,19 @@ export const LoginScreen = ({ navigation }) => {
     }
   };
 
+  const iosBottomPadding = Platform.OS === 'ios' && keyboardHeight > 0 ? Math.max(0, keyboardHeight - 16) : 0;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        style={styles.keyboardView}
+    <View style={[styles.safeArea, iosBottomPadding > 0 && { paddingBottom: iosBottomPadding }]}>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS !== 'ios' && keyboardHeight > 0 && styles.scrollContentKeyboardOpen,
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[
-            styles.scrollContent,
-            keyboardVisible && styles.scrollContentKeyboardOpen,
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          automaticallyAdjustKeyboardInsets={true}
-        >
           <View style={styles.header}>
             <Text style={styles.logo}>🍱</Text>
             <Text style={styles.title}>Homemade Tiffin</Text>
@@ -110,9 +104,11 @@ export const LoginScreen = ({ navigation }) => {
                 if (error) setError('');
               }}
               onFocus={() => {
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 150);
+                if (Platform.OS !== 'ios') {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 150);
+                }
               }}
               keyboardType="phone-pad"
               maxLength={10}
@@ -127,8 +123,7 @@ export const LoginScreen = ({ navigation }) => {
             />
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 

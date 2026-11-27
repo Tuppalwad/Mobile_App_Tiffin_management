@@ -8,6 +8,9 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Xcode 26.1 ships Swift 6.2.1; Firebase 13.x requires Swift 6.2.3 (Xcode 26.2+).
+$FirebaseSDKVersion = '12.16.0'
+
 linkage = ENV['USE_FRAMEWORKS'] || 'dynamic'
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
@@ -30,5 +33,18 @@ target 'mobile' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Fix react-native-image-picker missing MobileCoreServices / UniformTypeIdentifiers
+    # when built as a dynamic framework (required by Firebase SPM).
+    installer.pods_project.targets.each do |target|
+      if target.name == 'react-native-image-picker'
+        target.build_configurations.each do |cfg|
+          flags = cfg.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+          flags = flags.split if flags.is_a?(String)
+          flags += ['-framework', 'MobileCoreServices', '-weak_framework', 'UniformTypeIdentifiers']
+          cfg.build_settings['OTHER_LDFLAGS'] = flags
+        end
+      end
+    end
   end
 end
