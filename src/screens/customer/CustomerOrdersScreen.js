@@ -13,8 +13,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { Check, Package } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
@@ -62,7 +63,7 @@ export const CustomerOrdersScreen = () => {
   };
 
   const handleCancelOrder = (orderId) => {
-    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
+    CustomAlert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel',
@@ -71,9 +72,9 @@ export const CustomerOrdersScreen = () => {
           try {
             await customerApi.cancelOrder(orderId);
             fetchOrders();
-            Alert.alert('Order Cancelled', 'Your order was successfully cancelled.');
+            CustomAlert.alert('Order Cancelled', 'Your order was successfully cancelled.');
           } catch (err) {
-            Alert.alert('Cannot Cancel', err.message || 'Order is already being prepared.');
+            CustomAlert.alert('Cannot Cancel', err.message || 'Order is already being prepared.');
           }
         },
       },
@@ -116,7 +117,11 @@ export const CustomerOrdersScreen = () => {
                         isCurrent && styles.stepDotCurrent,
                       ]}
                     >
-                      <Text style={styles.stepDotText}>{isPassed ? '✓' : idx + 1}</Text>
+                      {isPassed ? (
+                        <Check size={12} color="#FFF" />
+                      ) : (
+                        <Text style={styles.stepDotText}>{idx + 1}</Text>
+                      )}
                     </View>
                     <Text
                       style={[
@@ -187,7 +192,7 @@ export const CustomerOrdersScreen = () => {
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📦</Text>
+              <Package size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Orders Yet</Text>
               <Text style={styles.emptySubtitle}>
                 Your daily and extra food orders will show up here.

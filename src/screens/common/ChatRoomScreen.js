@@ -23,13 +23,27 @@ import {
   Platform,
   Image,
   Modal,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
+import {
+  ArrowLeft,
+  Users,
+  Camera,
+  Send,
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  Ban,
+  MessageCircle,
+  User,
+  Crown,
+} from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { chatApi } from '../../api/chatApi';
 import { chatSocketService } from '../../services/chatSocketService';
@@ -87,11 +101,10 @@ export const ChatRoomScreen = ({ route, navigation }) => {
 
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const keyboardVisible = keyboardHeight > 0;
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingSentRef = useRef(false);
-
+  const keyboardVisible = keyboardHeight > 0;
   const loadMessages = useCallback(async (silent = false) => {
     try {
       const res = await chatApi.getMessages(conversationId, { page: 1, pageSize: 80 });
@@ -110,7 +123,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       chatSocketService.markRead(conversationId);
     } catch (err) {
       if (!silent) {
-        Alert.alert('Error', err.message || 'Could not load messages');
+        CustomAlert.alert('Error', err.message || 'Could not load messages');
       }
     } finally {
       setLoading(false);
@@ -321,14 +334,14 @@ export const ChatRoomScreen = ({ route, navigation }) => {
         setReplyTarget(null);
       }
     } catch (err) {
-      Alert.alert('Error', err.message || 'Could not send message');
+      CustomAlert.alert('Error', err.message || 'Could not send message');
     } finally {
       setSending(false);
     }
   };
 
   const handlePickImage = () => {
-    Alert.alert('Share Photo', 'Choose an image source', [
+    CustomAlert.alert('Share Photo', 'Choose an image source', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Camera',
@@ -354,7 +367,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       if (result.didCancel || !result.assets || result.assets.length === 0) return;
       const asset = result.assets[0];
       if (!asset.base64) {
-        Alert.alert('Image Error', 'Could not read image data.');
+        CustomAlert.alert('Image Error', 'Could not read image data.');
         return;
       }
 
@@ -365,7 +378,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       });
       setImageCaption('');
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to pick image');
+      CustomAlert.alert('Error', err.message || 'Failed to pick image');
     }
   };
 
@@ -399,7 +412,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       setImageCaption('');
       setReplyTarget(null);
     } catch (err) {
-      Alert.alert('Upload Failed', err.message || 'Could not send image');
+      CustomAlert.alert('Upload Failed', err.message || 'Could not send image');
     } finally {
       setSending(false);
     }
@@ -407,7 +420,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
 
   const handleDeleteMessage = (msg) => {
     setActionMessage(null);
-    Alert.alert('Delete Message', 'Delete this message for everyone?', [
+    CustomAlert.alert('Delete Message', 'Delete this message for everyone?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -425,7 +438,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
               setMessages((prev) => prev.map((m) => (m.id === deletedMsg.id ? deletedMsg : m)));
             }
           } catch (err) {
-            Alert.alert('Error', err.message || 'Could not delete message');
+            CustomAlert.alert('Error', err.message || 'Could not delete message');
           }
         },
       },
@@ -458,10 +471,10 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       setAddingMembers(false);
       setGroupInfoVisible(false);
       loadMessages();
-      Alert.alert('Added', 'New members added to the group.');
+      CustomAlert.alert('Added', 'New members added to the group.');
     } catch (err) {
       setAddingMembers(false);
-      Alert.alert('Error', err.message || 'Failed to add members');
+      CustomAlert.alert('Error', err.message || 'Failed to add members');
     }
   };
 
@@ -560,10 +573,10 @@ export const ChatRoomScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Chat Room Header */}
+        {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+          <ArrowLeft size={22} color={COLORS.text} />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
@@ -581,8 +594,9 @@ export const ChatRoomScreen = ({ route, navigation }) => {
         </View>
 
         {isGroup && (
-          <TouchableOpacity style={styles.groupInfoBtn} onPress={openGroupInfoModal}>
-            <Text style={styles.groupInfoBtnText}>{isOwner ? '👥 + Add' : '👥 Info'}</Text>
+          <TouchableOpacity style={[styles.groupInfoBtn, { flexDirection: 'row', alignItems: 'center', gap: 5 }]} onPress={openGroupInfoModal}>
+            <Users size={14} color={COLORS.primary} />
+            <Text style={styles.groupInfoBtnText}>{isOwner ? '+ Add' : 'Info'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -590,7 +604,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       <View
         style={[
           styles.flex,
-          Platform.OS === 'ios' && keyboardHeight > 0 && {
+          keyboardHeight > 0 && {
             paddingBottom: Math.max(0, keyboardHeight - insets.bottom),
           },
         ]}
@@ -609,7 +623,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <Text style={styles.emptyChatEmoji}>👋</Text>
+                <MessageCircle size={44} color={COLORS.textMuted} style={{ marginBottom: 10 }} />
                 <Text style={styles.emptyChatText}>
                   Say hi! Messages are end-to-end synced in real time.
                 </Text>
@@ -651,16 +665,16 @@ export const ChatRoomScreen = ({ route, navigation }) => {
                 if (editingMessage) setInputText('');
               }}
             >
-              <Text style={styles.contextClose}>✕</Text>
+              <X size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Message Input Bar */}
-        <View style={[styles.inputBar, Platform.OS !== 'ios' && keyboardVisible && { paddingBottom: 58 }]}>
+        <View style={[styles.inputBar, Platform.OS !== 'ios' && keyboardVisible && { paddingBottom: 38 }]}>
           {!editingMessage && (
             <TouchableOpacity style={styles.attachBtn} onPress={handlePickImage}>
-              <Text style={{ fontSize: 22 }}>📷</Text>
+              <Camera size={22} color={COLORS.textSecondary} />
             </TouchableOpacity>
           )}
 
@@ -682,8 +696,10 @@ export const ChatRoomScreen = ({ route, navigation }) => {
           >
             {sending ? (
               <ActivityIndicator size="small" color="#FFF" />
+            ) : editingMessage ? (
+              <Check size={18} color="#FFF" />
             ) : (
-              <Text style={styles.sendBtnText}>{editingMessage ? '✓' : '➤'}</Text>
+              <Send size={18} color="#FFF" />
             )}
           </TouchableOpacity>
         </View>
@@ -725,7 +741,10 @@ export const ChatRoomScreen = ({ route, navigation }) => {
                   setActionMessage(null);
                 }}
               >
-                <Text style={styles.sheetItemText}>✏️ Edit message</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Pencil size={16} color={COLORS.text} />
+                  <Text style={styles.sheetItemText}>Edit message</Text>
+                </View>
               </TouchableOpacity>
             )}
 
@@ -734,9 +753,12 @@ export const ChatRoomScreen = ({ route, navigation }) => {
                 style={styles.sheetItem}
                 onPress={() => handleDeleteMessage(actionMessage)}
               >
-                <Text style={[styles.sheetItemText, { color: COLORS.danger }]}>
-                  🗑️ Delete message
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Trash2 size={16} color={COLORS.danger} />
+                  <Text style={[styles.sheetItemText, { color: COLORS.danger }]}>
+                    Delete message
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -752,8 +774,9 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       >
         <SafeAreaView style={styles.imagePreviewModal}>
           <View style={styles.imagePreviewHeader}>
-            <TouchableOpacity onPress={() => setPendingImage(null)}>
-              <Text style={styles.previewCloseText}>✕ Cancel</Text>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} onPress={() => setPendingImage(null)}>
+              <X size={16} color="#FFF" />
+              <Text style={styles.previewCloseText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.previewTitle}>Send Image</Text>
             <View style={{ width: 60 }} />
@@ -784,7 +807,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
                 {sending ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={styles.sendBtnText}>➤</Text>
+                  <Send size={18} color="#FFF" />
                 )}
               </TouchableOpacity>
             </View>
@@ -801,10 +824,11 @@ export const ChatRoomScreen = ({ route, navigation }) => {
       >
         <SafeAreaView style={styles.imagePreviewModal}>
           <TouchableOpacity
-            style={styles.zoomCloseBtn}
+            style={[styles.zoomCloseBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}
             onPress={() => setZoomImageUrl(null)}
           >
-            <Text style={styles.previewCloseText}>✕ Close</Text>
+            <X size={16} color="#FFF" />
+            <Text style={styles.previewCloseText}>Close</Text>
           </TouchableOpacity>
           {zoomImageUrl && (
             <Image source={{ uri: zoomImageUrl }} style={styles.previewImageFull} resizeMode="contain" />
@@ -824,7 +848,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
             <View style={styles.groupModalHeader}>
               <Text style={styles.sheetTitle}>{title} • Members ({participants.length})</Text>
               <TouchableOpacity onPress={() => setGroupInfoVisible(false)}>
-                <Text style={{ fontSize: 18, color: COLORS.textSecondary }}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -834,9 +858,13 @@ export const ChatRoomScreen = ({ route, navigation }) => {
               style={{ maxHeight: 160, marginBottom: 12 }}
               renderItem={({ item }) => (
                 <View style={styles.memberRow}>
-                  <Text style={styles.memberRowName}>
-                    👤 {item.displayName || item.name} {item.role === 'admin' ? '👑' : ''}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <User size={14} color={COLORS.textSecondary} />
+                    <Text style={styles.memberRowName}>
+                      {item.displayName || item.name}
+                    </Text>
+                    {item.role === 'admin' && <Crown size={14} color={COLORS.warning} />}
+                  </View>
                   <Text style={styles.memberRowSub}>{item.phone}</Text>
                 </View>
               )}
@@ -1126,7 +1154,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderTopWidth: 1,
-    
     borderTopColor: COLORS.border,
   },
   attachBtn: {

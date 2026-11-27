@@ -3,7 +3,8 @@
  * Handles notification permissions, FCM device tokens, foreground & background handlers.
  */
 
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
+import { CustomAlert } from "../components/CustomAlert";
 import { getMessaging } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../api/authApi';
@@ -150,7 +151,7 @@ class NotificationService {
             chatSocketService.getActiveConversation() === Number(data.conversationId);
 
           if (!isViewingSameChat) {
-            Alert.alert(title, body, [{ text: 'OK' }]);
+            CustomAlert.alert(title, body, [{ text: 'OK' }]);
           }
         });
       }

@@ -15,8 +15,21 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import {
+  Banknote,
+  Smartphone,
+  Clock,
+  Users,
+  Receipt,
+  CreditCard,
+  X,
+  AlertTriangle,
+  User,
+  Phone,
+  Wallet,
+} from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -123,7 +136,7 @@ export const OwnerPaymentsScreen = () => {
 
   const handleRecordPayment = async () => {
     if (!selectedCustomerId || !amount) {
-      Alert.alert('Required Fields', 'Please select customer and enter amount.');
+      CustomAlert.alert('Required Fields', 'Please select customer and enter amount.');
       return;
     }
 
@@ -143,10 +156,10 @@ export const OwnerPaymentsScreen = () => {
       setAmount('');
       setNotes('');
       fetchData();
-      Alert.alert('Payment Recorded', `Recorded ₹${amount} received from customer.`);
+      CustomAlert.alert('Payment Recorded', `Recorded ₹${amount} received from customer.`);
     } catch (err) {
       setSubmitting(false);
-      Alert.alert('Error', err.message || 'Failed to record payment');
+      CustomAlert.alert('Error', err.message || 'Failed to record payment');
     }
   };
 
@@ -262,17 +275,26 @@ export const OwnerPaymentsScreen = () => {
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
-          <Text style={styles.sumLabel}>💵 Cash Received</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Banknote size={13} color={COLORS.success} />
+            <Text style={styles.sumLabel}>Cash Received</Text>
+          </View>
           <Text style={styles.sumVal}>₹{summary?.cashCollections || 0}</Text>
         </View>
 
         <View style={styles.summaryCard}>
-          <Text style={styles.sumLabel}>📱 UPI / Online</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Smartphone size={13} color={COLORS.info} />
+            <Text style={styles.sumLabel}>UPI / Online</Text>
+          </View>
           <Text style={styles.sumVal}>₹{summary?.onlineCollections || 0}</Text>
         </View>
 
         <View style={styles.summaryCard}>
-          <Text style={styles.sumLabel}>⏳ Pending</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Clock size={13} color={COLORS.warning} />
+            <Text style={styles.sumLabel}>Pending</Text>
+          </View>
           <Text style={[styles.sumVal, { color: COLORS.warning }]}>
             ₹{summary?.pendingCollections || 0}
           </Text>
@@ -282,19 +304,21 @@ export const OwnerPaymentsScreen = () => {
       {/* Tab Selector */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'customers' && styles.activeTabItem]}
+          style={[styles.tabItem, activeTab === 'customers' && styles.activeTabItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
           onPress={() => setActiveTab('customers')}
         >
+          <Users size={15} color={activeTab === 'customers' ? COLORS.primary : COLORS.textSecondary} />
           <Text style={[styles.tabText, activeTab === 'customers' && styles.activeTabText]}>
-            👥 Customer Accounts
+            Customer Accounts
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'transactions' && styles.activeTabItem]}
+          style={[styles.tabItem, activeTab === 'transactions' && styles.activeTabItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
           onPress={() => setActiveTab('transactions')}
         >
+          <Receipt size={15} color={activeTab === 'transactions' ? COLORS.primary : COLORS.textSecondary} />
           <Text style={[styles.tabText, activeTab === 'transactions' && styles.activeTabText]}>
-            🧾 Transactions
+            Transactions
           </Text>
         </TouchableOpacity>
       </View>
@@ -339,7 +363,7 @@ export const OwnerPaymentsScreen = () => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>👥</Text>
+              <Users size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Customers Found</Text>
               <Text style={styles.emptySubtitle}>
                 Customers with active subscriptions or meal orders will appear here with live advance & due balances.
@@ -356,7 +380,7 @@ export const OwnerPaymentsScreen = () => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>💳</Text>
+              <CreditCard size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Payments Recorded</Text>
               <Text style={styles.emptySubtitle}>
                 Record cash or UPI payments collected directly from your tiffin subscribers.
@@ -373,7 +397,7 @@ export const OwnerPaymentsScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Record Customer Payment</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeBtn}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -417,9 +441,10 @@ export const OwnerPaymentsScreen = () => {
                   </ScrollView>
                 </View>
               ) : (
-                <View style={styles.noCustomersNotice}>
+                <View style={[styles.noCustomersNotice, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                  <AlertTriangle size={15} color={COLORS.warning} />
                   <Text style={styles.noCustomersNoticeText}>
-                    ⚠️ No customer records found.
+                    No customer records found.
                   </Text>
                 </View>
               )}
@@ -428,16 +453,25 @@ export const OwnerPaymentsScreen = () => {
               {selectedCustomer && (
                 <View style={styles.selectedCustomerBanner}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.selectedCustomerName}>
-                      👤 {selectedCustomer.customer?.name || selectedCustomer.name || 'Customer'}
-                    </Text>
-                    <Text style={styles.selectedCustomerPhone}>
-                      📞 {selectedCustomer.customer?.phone || selectedCustomer.phone || 'No phone'}
-                    </Text>
-                    {selectedCustomer.order_advance_balance > 0 && (
-                      <Text style={styles.advHintText}>
-                        💰 Order Advance Available: ₹{selectedCustomer.order_advance_balance}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <User size={14} color={COLORS.text} />
+                      <Text style={styles.selectedCustomerName}>
+                        {selectedCustomer.customer?.name || selectedCustomer.name || 'Customer'}
                       </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                      <Phone size={12} color={COLORS.textSecondary} />
+                      <Text style={styles.selectedCustomerPhone}>
+                        {selectedCustomer.customer?.phone || selectedCustomer.phone || 'No phone'}
+                      </Text>
+                    </View>
+                    {selectedCustomer.order_advance_balance > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                        <Wallet size={12} color={COLORS.success} />
+                        <Text style={styles.advHintText}>
+                          Order Advance Available: ₹{selectedCustomer.order_advance_balance}
+                        </Text>
+                      </View>
                     )}
                   </View>
                   {selectedCustomer.total_pending > 0 ? (

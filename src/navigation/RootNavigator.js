@@ -10,6 +10,18 @@ import { View, Text, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector, useDispatch } from 'react-redux';
+import {
+  Home,
+  ClipboardList,
+  UtensilsCrossed,
+  CalendarDays,
+  Users,
+  CreditCard,
+  Settings,
+  ShoppingCart,
+  Package,
+  User,
+} from 'lucide-react-native';
 import { COLORS } from '../constants/theme';
 import { loadStoredAuthThunk } from '../store/slices/authSlice';
 
@@ -61,16 +73,16 @@ const OwnerTabNavigator = () => (
       tabBarInactiveTintColor: COLORS.textMuted,
       tabBarStyle: styles.tabBar,
       tabBarLabelStyle: styles.tabBarLabel,
-      tabBarIcon: ({ focused }) => {
-        let icon = '📋';
-        if (route.name === 'OwnerDashboard') icon = '🏠';
-        else if (route.name === 'OwnerOrders') icon = '🍱';
-        else if (route.name === 'OwnerMenu') icon = '🥘';
-        else if (route.name === 'OwnerPlans') icon = '📅';
-        else if (route.name === 'OwnerSubscriptions') icon = '👥';
-        else if (route.name === 'OwnerPayments') icon = '💳';
-        else if (route.name === 'OwnerProfile') icon = '⚙️';
-        return <Text style={{ fontSize: focused ? 22 : 18 }}>{icon}</Text>;
+      tabBarIcon: ({ color, size }) => {
+        const iconSize = size ? size - 2 : 20;
+        if (route.name === 'OwnerDashboard') return <Home size={iconSize} color={color} />;
+        if (route.name === 'OwnerOrders') return <ClipboardList size={iconSize} color={color} />;
+        if (route.name === 'OwnerMenu') return <UtensilsCrossed size={iconSize} color={color} />;
+        if (route.name === 'OwnerPlans') return <CalendarDays size={iconSize} color={color} />;
+        if (route.name === 'OwnerSubscriptions') return <Users size={iconSize} color={color} />;
+        if (route.name === 'OwnerPayments') return <CreditCard size={iconSize} color={color} />;
+        if (route.name === 'OwnerProfile') return <Settings size={iconSize} color={color} />;
+        return <ClipboardList size={iconSize} color={color} />;
       },
     })}
   >
@@ -97,14 +109,14 @@ const CustomerTabs = () => {
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIcon: ({ focused }) => {
-          let icon = '🏠';
-          if (route.name === 'CustomerHome') icon = '🏠';
-          else if (route.name === 'CustomerSubscriptions') icon = '📅';
-          else if (route.name === 'CustomerCart') icon = '🛒';
-          else if (route.name === 'CustomerOrders') icon = '📦';
-          else if (route.name === 'CustomerProfile') icon = '👤';
-          return <Text style={{ fontSize: focused ? 22 : 18 }}>{icon}</Text>;
+        tabBarIcon: ({ color, size }) => {
+          const iconSize = size ? size - 2 : 20;
+          if (route.name === 'CustomerHome') return <Home size={iconSize} color={color} />;
+          if (route.name === 'CustomerSubscriptions') return <CalendarDays size={iconSize} color={color} />;
+          if (route.name === 'CustomerCart') return <ShoppingCart size={iconSize} color={color} />;
+          if (route.name === 'CustomerOrders') return <Package size={iconSize} color={color} />;
+          if (route.name === 'CustomerProfile') return <User size={iconSize} color={color} />;
+          return <Home size={iconSize} color={color} />;
         },
       })}
     >
@@ -157,7 +169,7 @@ export const RootNavigator = () => {
   if (isInitializing) {
     return (
       <View style={styles.splash}>
-        <Text style={{ fontSize: 64 }}>🍱</Text>
+        <UtensilsCrossed size={56} color="#FFFFFF" />
         <Text style={styles.splashTitle}>Homemade Tiffin</Text>
       </View>
     );

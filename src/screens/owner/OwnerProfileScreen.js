@@ -15,14 +15,15 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Card } from '../../components/Card';
+import { X, Check } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { logoutThunk, selectRoleThunk, updateUser } from '../../store/slices/authSlice';
@@ -83,12 +84,12 @@ export const OwnerProfileScreen = () => {
   const handleSaveProfile = async () => {
     const trimmedPincode = pincode.trim();
     if (trimmedPincode && !/^\d{6}$/.test(trimmedPincode)) {
-      Alert.alert('Invalid Pincode', 'Pincode must be exactly 6 digits.');
+      CustomAlert.alert('Invalid Pincode', 'Pincode must be exactly 6 digits.');
       return;
     }
 
     if (!deliveryAvailable && !pickupAvailable) {
-      Alert.alert(
+      CustomAlert.alert(
         'Delivery Option Required',
         'Please keep at least one option enabled (Doorstep Delivery or Customer Self-Pickup).'
       );
@@ -123,10 +124,10 @@ export const OwnerProfileScreen = () => {
       ).catch(() => null);
 
       setSaving(false);
-      Alert.alert('Saved', 'Business profile updated successfully!');
+      CustomAlert.alert('Saved', 'Business profile updated successfully!');
     } catch (err) {
       setSaving(false);
-      Alert.alert('Error', err.message || 'Failed to update profile');
+      CustomAlert.alert('Error', err.message || 'Failed to update profile');
     }
   };
 
@@ -140,7 +141,7 @@ export const OwnerProfileScreen = () => {
   };
 
   const handleSwitchToCustomer = () => {
-    Alert.alert('Switch Role', 'Do you want to switch to Customer mode?', [
+    CustomAlert.alert('Switch Role', 'Do you want to switch to Customer mode?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Switch',
@@ -152,7 +153,7 @@ export const OwnerProfileScreen = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Confirm Logout', 'Are you sure you want to log out?', [
+    CustomAlert.alert('Confirm Logout', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
@@ -343,7 +344,7 @@ export const OwnerProfileScreen = () => {
                 Select {timePickerTarget === 'opening' ? 'Opening' : 'Closing'} Time
               </Text>
               <TouchableOpacity onPress={() => setTimePickerTarget(null)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -362,7 +363,7 @@ export const OwnerProfileScreen = () => {
                     <Text style={[styles.slotText, isSelected && styles.slotTextActive]}>
                       {item.label}
                     </Text>
-                    {isSelected && <Text style={styles.slotCheck}>✓</Text>}
+                    {isSelected && <Check size={16} color={COLORS.primary} />}
                   </TouchableOpacity>
                 );
               }}

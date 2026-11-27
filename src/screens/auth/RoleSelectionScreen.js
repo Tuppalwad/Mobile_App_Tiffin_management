@@ -10,8 +10,9 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { ChefHat, Utensils } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
@@ -25,7 +26,7 @@ export const RoleSelectionScreen = () => {
   const handleContinue = async () => {
     const result = await dispatch(selectRoleThunk(selectedRole));
     if (selectRoleThunk.rejected.match(result)) {
-      Alert.alert('Error', result.payload || 'Failed to set role. Please try again.');
+      CustomAlert.alert('Error', result.payload || 'Failed to set role. Please try again.');
     }
   };
 
@@ -48,7 +49,7 @@ export const RoleSelectionScreen = () => {
           ]}
         >
           <View style={styles.roleIconContainer}>
-            <Text style={styles.roleIcon}>👩‍🍳</Text>
+            <ChefHat size={26} color={selectedRole === 'owner' ? COLORS.primary : COLORS.textSecondary} />
           </View>
           <View style={styles.roleDetails}>
             <Text style={styles.roleTitle}>Tiffin Service Owner</Text>
@@ -71,7 +72,7 @@ export const RoleSelectionScreen = () => {
           ]}
         >
           <View style={styles.roleIconContainer}>
-            <Text style={styles.roleIcon}>😋</Text>
+            <Utensils size={26} color={selectedRole === 'customer' ? COLORS.primary : COLORS.textSecondary} />
           </View>
           <View style={styles.roleDetails}>
             <Text style={styles.roleTitle}>Customer / Food Lover</Text>

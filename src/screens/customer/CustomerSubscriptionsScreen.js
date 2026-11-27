@@ -13,8 +13,9 @@ import {
   Modal,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { ChefHat, CalendarDays, PauseCircle, X, Info } from 'lucide-react-native';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -71,7 +72,7 @@ export const CustomerSubscriptionsScreen = () => {
 
   const handleSubmitSkip = async () => {
     if (!selectedSubId || !skipDate) {
-      Alert.alert('Required', 'Please select date to skip.');
+      CustomAlert.alert('Required', 'Please select date to skip.');
       return;
     }
 
@@ -86,10 +87,10 @@ export const CustomerSubscriptionsScreen = () => {
       setSubmitting(false);
       setModalVisible(false);
       fetchData();
-      Alert.alert('Request Submitted! ⏸️', 'The kitchen has been notified to skip your meal.');
+      CustomAlert.alert('Request Submitted! ⏸️', 'The kitchen has been notified to skip your meal.');
     } catch (err) {
       setSubmitting(false);
-      Alert.alert('Error', err.message || 'Failed to submit skip request');
+      CustomAlert.alert('Error', err.message || 'Failed to submit skip request');
     }
   };
 
@@ -100,15 +101,21 @@ export const CustomerSubscriptionsScreen = () => {
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.planName}>{item.plan?.name}</Text>
-            <Text style={styles.ownerName}>🧑‍🍳 {owner.business_name || 'Chef'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <ChefHat size={14} color={COLORS.primary} />
+              <Text style={styles.ownerName}>{owner.business_name || 'Chef'}</Text>
+            </View>
           </View>
           <Badge text={item.status} status={item.status} />
         </View>
 
         <View style={styles.datesRow}>
-          <Text style={styles.datesText}>
-            📅 {item.start_date} to {item.end_date}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <CalendarDays size={14} color={COLORS.textSecondary} />
+            <Text style={styles.datesText}>
+              {item.start_date} to {item.end_date}
+            </Text>
+          </View>
           <Text style={styles.daysRemaining}>
             {item.remaining_days} service days left
           </Text>
@@ -128,10 +135,11 @@ export const CustomerSubscriptionsScreen = () => {
         {/* Skip Meal Quick Action */}
         {item.status === 'active' && (
           <TouchableOpacity
-            style={styles.skipActionBtn}
+            style={[styles.skipActionBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
             onPress={() => handleOpenSkipModal(item.id)}
           >
-            <Text style={styles.skipActionText}>⏸️ Skip A Meal / Today's Tiffin</Text>
+            <PauseCircle size={15} color={COLORS.primary} />
+            <Text style={styles.skipActionText}>Skip A Meal / Today's Tiffin</Text>
           </TouchableOpacity>
         )}
       </Card>
@@ -175,7 +183,7 @@ export const CustomerSubscriptionsScreen = () => {
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📅</Text>
+              <CalendarDays size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Active Subscriptions</Text>
               <Text style={styles.emptySubtitle}>
                 Subscribe to a monthly tiffin plan to enjoy hot, daily homemade meals.
@@ -192,14 +200,15 @@ export const CustomerSubscriptionsScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Skip Tiffin Meal</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeBtn}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
-              <View style={styles.noticeBox}>
-                <Text style={styles.noticeText}>
-                  ℹ️ Cutoff Notice: Please request skips at least 2 hours before meal preparation time so food is not wasted.
+              <View style={[styles.noticeBox, { flexDirection: 'row', alignItems: 'flex-start', gap: 8 }]}>
+                <Info size={16} color={COLORS.info} style={{ marginTop: 2 }} />
+                <Text style={[styles.noticeText, { flex: 1 }]}>
+                  Cutoff Notice: Please request skips at least 2 hours before meal preparation time so food is not wasted.
                 </Text>
               </View>
 

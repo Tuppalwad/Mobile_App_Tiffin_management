@@ -12,8 +12,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { MessageCircle, CalendarDays, Check, ShoppingCart, ArrowRight } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Badge } from '../../components/Card';
@@ -41,7 +42,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
           const response = await customerApi.getProviderDetails(providerId);
           setData(response.data);
         } catch (err) {
-          Alert.alert('Error', err.message || 'Could not load provider details.');
+          CustomAlert.alert('Error', err.message || 'Could not load provider details.');
         } finally {
           setLoading(false);
         }
@@ -52,7 +53,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
   );
 
   const handleSubscribe = async (plan) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Confirm Subscription',
       `Subscribe to "${plan.name}" for ₹${plan.price} (30 Days)?`,
       [
@@ -70,7 +71,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                 notes: 'Subscribed via app',
               });
               setSubscribing(false);
-              Alert.alert('Subscribed!', 'Your monthly tiffin plan is now active.', [
+              CustomAlert.alert('Subscribed!', 'Your monthly tiffin plan is now active.', [
                 {
                   text: 'View Subscriptions',
                   onPress: () =>
@@ -81,7 +82,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
               ]);
             } catch (err) {
               setSubscribing(false);
-              Alert.alert('Error', err.message || 'Subscription failed');
+              CustomAlert.alert('Error', err.message || 'Subscription failed');
             }
           },
         },
@@ -131,7 +132,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={styles.chatChefBtn}
+            style={[styles.chatChefBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
             onPress={async () => {
               try {
                 const res = await chatApi.startDirectChat(provider?.user_id || providerId);
@@ -144,11 +145,12 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                   });
                 }
               } catch (err) {
-                Alert.alert('Chat Unavailable', err.message || 'Could not start chat');
+                CustomAlert.alert('Chat Unavailable', err.message || 'Could not start chat');
               }
             }}
           >
-            <Text style={styles.chatChefBtnText}>💬 Chat with Kitchen / Chef</Text>
+            <MessageCircle size={16} color={COLORS.primary} />
+            <Text style={styles.chatChefBtnText}>Chat with Kitchen / Chef</Text>
           </TouchableOpacity>
         </Card>
 
@@ -246,9 +248,12 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                 <View style={styles.planHeader}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.planName}>{plan.name}</Text>
-                    <Text style={styles.planDuration}>
-                      📅 {plan.duration_days} Days Plan • Free Delivery
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                      <CalendarDays size={13} color={COLORS.textSecondary} />
+                      <Text style={styles.planDuration}>
+                        {plan.duration_days} Days Plan • Free Delivery
+                      </Text>
+                    </View>
                   </View>
                   <Text style={styles.planPrice}>₹{plan.price}</Text>
                 </View>
@@ -261,9 +266,12 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                   <View style={styles.inclusionBox}>
                     <Text style={styles.incTitle}>Included in this plan:</Text>
                     {plan.planItems.map((pi, idx) => (
-                      <Text key={idx} style={styles.incItem}>
-                        ✓ {pi.quantity}x {pi.menuItem?.name || 'Tiffin Meal'}
-                      </Text>
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginVertical: 1 }}>
+                        <Check size={13} color={COLORS.success} />
+                        <Text style={styles.incItem}>
+                          {pi.quantity}x {pi.menuItem?.name || 'Tiffin Meal'}
+                        </Text>
+                      </View>
                     ))}
                   </View>
                 )}
@@ -292,14 +300,16 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
             </Text>
           </View>
           <TouchableOpacity
-            style={styles.checkoutBtn}
+            style={[styles.checkoutBtn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
             onPress={() =>
               navigation.navigate('CustomerTabs', {
                 screen: 'CustomerCart',
               })
             }
           >
-            <Text style={styles.checkoutText}>View Cart 🛒 →</Text>
+            <ShoppingCart size={15} color="#FFF" />
+            <Text style={styles.checkoutText}>View Cart</Text>
+            <ArrowRight size={15} color="#FFF" />
           </TouchableOpacity>
         </View>
       )}

@@ -12,6 +12,7 @@ import { store } from './src/store';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { notificationService } from './src/services/notificationService';
+import { CustomAlertProvider } from './src/components/CustomAlert';
 
 function App() {
   useEffect(() => {
@@ -24,12 +25,14 @@ function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-        <NavigationContainer>
-          <StatusBar barStyle="dark-content" />
-          <RootNavigator />
-        </NavigationContainer>
-        </SafeAreaView>
+        <CustomAlertProvider>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+            <NavigationContainer>
+              <StatusBar barStyle="dark-content" />
+              <RootNavigator />
+            </NavigationContainer>
+          </SafeAreaView>
+        </CustomAlertProvider>
       </SafeAreaProvider>
     </Provider>
   );

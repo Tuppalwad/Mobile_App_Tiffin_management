@@ -11,9 +11,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
@@ -61,7 +61,7 @@ export const CustomerProfileScreen = () => {
   const handleSaveProfile = async () => {
     const trimmedPincode = pincode.trim();
     if (trimmedPincode && !/^\d{6}$/.test(trimmedPincode)) {
-      Alert.alert('Invalid Pincode', 'Pincode must be exactly 6 digits.');
+      CustomAlert.alert('Invalid Pincode', 'Pincode must be exactly 6 digits.');
       return;
     }
 
@@ -87,15 +87,15 @@ export const CustomerProfileScreen = () => {
       ).catch(() => null);
 
       setSaving(false);
-      Alert.alert('Saved', 'Your profile details have been updated.');
+      CustomAlert.alert('Saved', 'Your profile details have been updated.');
     } catch (err) {
       setSaving(false);
-      Alert.alert('Error', err.message || 'Failed to update profile');
+      CustomAlert.alert('Error', err.message || 'Failed to update profile');
     }
   };
 
   const handleSwitchToOwner = () => {
-    Alert.alert('Switch Role', 'Do you want to switch to Owner / Tiffin Provider mode?', [
+    CustomAlert.alert('Switch Role', 'Do you want to switch to Owner / Tiffin Provider mode?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Switch',
@@ -107,7 +107,7 @@ export const CustomerProfileScreen = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Confirm Logout', 'Are you sure you want to log out?', [
+    CustomAlert.alert('Confirm Logout', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',

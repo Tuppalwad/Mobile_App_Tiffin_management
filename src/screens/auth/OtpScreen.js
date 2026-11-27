@@ -12,8 +12,8 @@ import {
   ScrollView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -31,7 +31,7 @@ export const OtpScreen = ({ route, navigation }) => {
 
   const handleVerify = async () => {
     if (!otp || otp.length < 6) {
-      Alert.alert('Invalid OTP', 'Please enter a valid 6-digit verification code.');
+      CustomAlert.alert('Invalid OTP', 'Please enter a valid 6-digit verification code.');
       return;
     }
 
@@ -44,7 +44,7 @@ export const OtpScreen = ({ route, navigation }) => {
         navigation.navigate('RoleSelection');
       }
     } else {
-      Alert.alert('Verification Failed', resultAction.payload || 'Invalid OTP code.');
+      CustomAlert.alert('Verification Failed', resultAction.payload || 'Invalid OTP code.');
     }
   };
 
@@ -56,10 +56,10 @@ export const OtpScreen = ({ route, navigation }) => {
       if (res?.data?.otp) {
         setOtp(res.data.otp);
       }
-      Alert.alert('OTP Sent', 'A new verification code has been sent.');
+      CustomAlert.alert('OTP Sent', 'A new verification code has been sent.');
     } catch (err) {
       setResending(false);
-      Alert.alert('Error', err.message || 'Could not resend OTP.');
+      CustomAlert.alert('Error', err.message || 'Could not resend OTP.');
     }
   };
 

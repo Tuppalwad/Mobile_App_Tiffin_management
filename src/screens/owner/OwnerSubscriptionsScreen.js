@@ -12,8 +12,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { Phone, Check, X, Users } from 'lucide-react-native';
 import { Card, Badge } from '../../components/Card';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
@@ -57,10 +58,10 @@ export const OwnerSubscriptionsScreen = () => {
   const handleUpdateSkip = async (skipId, status) => {
     try {
       await ownerApi.updateSkipStatus(skipId, { status });
-      Alert.alert('Success', `Skip request ${status}!`);
+      CustomAlert.alert('Success', `Skip request ${status}!`);
       fetchData();
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update skip request');
+      CustomAlert.alert('Error', err.message || 'Failed to update skip request');
     }
   };
 
@@ -71,7 +72,10 @@ export const OwnerSubscriptionsScreen = () => {
         <View style={styles.cardHeader}>
           <View>
             <Text style={styles.customerName}>{customer.name || 'Customer'}</Text>
-            <Text style={styles.customerPhone}>📞 {customer.phone}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+              <Phone size={12} color={COLORS.textSecondary} />
+              <Text style={styles.customerPhone}>{customer.phone}</Text>
+            </View>
           </View>
           <Badge text={item.status} status={item.status} />
         </View>
@@ -119,17 +123,19 @@ export const OwnerSubscriptionsScreen = () => {
         {item.status === 'requested' && (
           <View style={styles.skipActions}>
             <TouchableOpacity
-              style={[styles.skipBtn, { backgroundColor: COLORS.secondary }]}
+              style={[styles.skipBtn, { backgroundColor: COLORS.secondary, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
               onPress={() => handleUpdateSkip(item.id, 'approved')}
             >
-              <Text style={styles.skipBtnText}>Approve Skip & Deduct Meal ✓</Text>
+              <Text style={styles.skipBtnText}>Approve Skip & Deduct Meal</Text>
+              <Check size={15} color="#FFF" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.skipBtn, { backgroundColor: COLORS.danger, marginTop: 8 }]}
+              style={[styles.skipBtn, { backgroundColor: COLORS.danger, marginTop: 8, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
               onPress={() => handleUpdateSkip(item.id, 'rejected')}
             >
-              <Text style={styles.skipBtnText}>Reject ✕</Text>
+              <Text style={styles.skipBtnText}>Reject</Text>
+              <X size={15} color="#FFF" />
             </TouchableOpacity>
           </View>
         )}
@@ -173,7 +179,7 @@ export const OwnerSubscriptionsScreen = () => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>👥</Text>
+              <Users size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Subscriptions Yet</Text>
               <Text style={styles.emptySubtitle}>
                 When customers subscribe to your monthly plans, they will appear here.

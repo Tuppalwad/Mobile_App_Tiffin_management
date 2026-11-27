@@ -11,11 +11,12 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Check, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react-native';
 import { Card } from './Card';
 import { COLORS, SIZES, FONTS } from '../constants/theme';
 
 export const SetupTracker = ({
-  title = '🚀 Getting Started',
+  title = 'Getting Started',
   subtitle = 'Complete these steps to set up your account',
   steps = [],
   storageKey = 'tracker_dismissed',
@@ -54,7 +55,7 @@ export const SetupTracker = ({
             <Text style={styles.title}>{title}</Text>
             {isAllDone && (
               <View style={styles.doneBadge}>
-                <Text style={styles.doneBadgeText}>ALL DONE! 🎉</Text>
+                <Text style={styles.doneBadgeText}>ALL DONE!</Text>
               </View>
             )}
           </View>
@@ -63,9 +64,14 @@ export const SetupTracker = ({
 
         <TouchableOpacity
           onPress={() => setIsCollapsed(!isCollapsed)}
-          style={styles.collapseBtn}
+          style={[styles.collapseBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}
         >
-          <Text style={styles.collapseBtnText}>{isCollapsed ? 'Show ▼' : 'Hide ▲'}</Text>
+          <Text style={styles.collapseBtnText}>{isCollapsed ? 'Show' : 'Hide'}</Text>
+          {isCollapsed ? (
+            <ChevronDown size={14} color={COLORS.primary} />
+          ) : (
+            <ChevronUp size={14} color={COLORS.primary} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -100,9 +106,11 @@ export const SetupTracker = ({
               >
                 {/* Step Indicator */}
                 <View style={[styles.stepDot, isDone && styles.stepDotDone]}>
-                  <Text style={[styles.stepDotText, isDone && styles.stepDotTextDone]}>
-                    {isDone ? '✓' : idx + 1}
-                  </Text>
+                  {isDone ? (
+                    <Check size={14} color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.stepDotText}>{idx + 1}</Text>
+                  )}
                 </View>
 
                 {/* Step Content */}
@@ -122,10 +130,11 @@ export const SetupTracker = ({
 
                 {/* Action Arrow */}
                 {step.onPress && (
-                  <View style={styles.arrowBox}>
+                  <View style={[styles.arrowBox, { flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
                     <Text style={[styles.arrowText, isDone && styles.arrowTextDone]}>
-                      {isDone ? 'Edit' : 'Start →'}
+                      {isDone ? 'Edit' : 'Start'}
                     </Text>
+                    {!isDone && <ArrowRight size={13} color={COLORS.primary} />}
                   </View>
                 )}
               </TouchableOpacity>
@@ -134,8 +143,9 @@ export const SetupTracker = ({
 
           {/* Dismiss button when all done or if user prefers */}
           {isAllDone && (
-            <TouchableOpacity style={styles.dismissBtn} onPress={handleDismiss}>
-              <Text style={styles.dismissBtnText}>Dismiss Checklist ✓</Text>
+            <TouchableOpacity style={[styles.dismissBtn, { flexDirection: 'row', justifyContent: 'center', gap: 6 }]} onPress={handleDismiss}>
+              <Text style={styles.dismissBtnText}>Dismiss Checklist</Text>
+              <Check size={14} color={COLORS.success} />
             </TouchableOpacity>
           )}
         </View>

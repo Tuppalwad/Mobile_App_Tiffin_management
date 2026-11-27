@@ -18,6 +18,18 @@ import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '../../components/Card';
 import { SetupTracker } from '../../components/SetupTracker';
+import {
+  MessageCircle,
+  Bell,
+  Package,
+  CheckCircle2,
+  PauseCircle,
+  Users,
+  ClipboardList,
+  UtensilsCrossed,
+  CalendarDays,
+  CreditCard,
+} from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { notificationApi } from '../../api/notificationApi';
@@ -84,7 +96,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
   const ownerSetupSteps = [
     {
       id: 'step_menu',
-      title: 'Add Your Menu Items 🥘',
+      title: 'Add Your Menu Items',
       desc: menuCount > 0 ? `${menuCount} dishes added` : 'Add homemade curries, rotis, rice & daily specials',
       badge: menuCount > 0 ? `${menuCount} Added` : 'Required',
       isCompleted: menuCount > 0,
@@ -92,7 +104,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
     },
     {
       id: 'step_plans',
-      title: 'Create Subscription Plans 📅',
+      title: 'Create Subscription Plans',
       desc: planCount > 0 ? `${planCount} active plans` : 'Set weekly/monthly plans (e.g. 30-Day Lunch Plan)',
       badge: planCount > 0 ? `${planCount} Created` : 'Required',
       isCompleted: planCount > 0,
@@ -100,7 +112,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
     },
     {
       id: 'step_settings',
-      title: 'Update Kitchen & Service Details ⚙️',
+      title: 'Update Kitchen & Service Details',
       desc: hasProfileDetails ? 'Kitchen profile completed' : 'Set delivery radius, kitchen address & phone in Settings',
       badge: hasProfileDetails ? 'Done' : 'Important',
       isCompleted: hasProfileDetails,
@@ -136,7 +148,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
               style={[styles.notifBadge, { marginRight: 10 }]}
               onPress={() => navigation.navigate('ChatList')}
             >
-              <Text style={{ fontSize: 21 }}>💬</Text>
+              <MessageCircle size={22} color={COLORS.text} />
               {unreadChatCount > 0 && (
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadBadgeText}>
@@ -149,7 +161,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
               style={styles.notifBadge}
               onPress={() => navigation.navigate('Notifications')}
             >
-              <Text style={{ fontSize: 22 }}>🔔</Text>
+              <Bell size={22} color={COLORS.text} />
               {unreadCount > 0 && (
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadBadgeText}>
@@ -163,7 +175,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
 
         {/* First-time Onboarding & Setup Tracker */}
         <SetupTracker
-          title="🚀 Kitchen Setup Tracker"
+          title="Kitchen Setup Tracker"
           subtitle="Follow these steps to start receiving and managing tiffins"
           steps={ownerSetupSteps}
           storageKey={`owner_setup_dismissed_${user?.id || 'default'}`}
@@ -199,7 +211,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.gridCard}
             onPress={() => navigation.navigate('OwnerOrders')}
           >
-            <Text style={styles.gridIcon}>🍱</Text>
+            <Package size={26} color={COLORS.primary} style={{ marginBottom: 6 }} />
             <Text style={styles.gridValue}>{stats?.todayOrders || 0}</Text>
             <Text style={styles.gridLabel}>Total Orders</Text>
           </TouchableOpacity>
@@ -208,7 +220,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.gridCard}
             onPress={() => navigation.navigate('OwnerOrders')}
           >
-            <Text style={styles.gridIcon}>✅</Text>
+            <CheckCircle2 size={26} color={COLORS.success} style={{ marginBottom: 6 }} />
             <Text style={styles.gridValue}>{stats?.todayCompletedOrders || 0}</Text>
             <Text style={styles.gridLabel}>Delivered</Text>
           </TouchableOpacity>
@@ -217,7 +229,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.gridCard}
             onPress={() => navigation.navigate('OwnerSubscriptions')}
           >
-            <Text style={styles.gridIcon}>⏸️</Text>
+            <PauseCircle size={26} color={COLORS.warning} style={{ marginBottom: 6 }} />
             <Text style={styles.gridValue}>{stats?.todaySkippedTiffins || 0}</Text>
             <Text style={styles.gridLabel}>Skipped Tiffins</Text>
           </TouchableOpacity>
@@ -226,7 +238,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.gridCard}
             onPress={() => navigation.navigate('OwnerSubscriptions')}
           >
-            <Text style={styles.gridIcon}>👥</Text>
+            <Users size={26} color={COLORS.info} style={{ marginBottom: 6 }} />
             <Text style={styles.gridValue}>{stats?.activeSubscribers || 0}</Text>
             <Text style={styles.gridLabel}>Active Subscribers</Text>
           </TouchableOpacity>
@@ -239,7 +251,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.actionButton}
             onPress={() => navigation.navigate('OwnerOrders')}
           >
-            <Text style={styles.actionEmoji}>📋</Text>
+            <ClipboardList size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
             <Text style={styles.actionText}>Manage Orders</Text>
           </TouchableOpacity>
 
@@ -247,7 +259,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.actionButton}
             onPress={() => navigation.navigate('OwnerMenu')}
           >
-            <Text style={styles.actionEmoji}>🥘</Text>
+            <UtensilsCrossed size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
             <Text style={styles.actionText}>Menu & Items</Text>
           </TouchableOpacity>
 
@@ -255,7 +267,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.actionButton}
             onPress={() => navigation.navigate('OwnerPlans')}
           >
-            <Text style={styles.actionEmoji}>📅</Text>
+            <CalendarDays size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
             <Text style={styles.actionText}>Tiffin Plans</Text>
           </TouchableOpacity>
 
@@ -263,7 +275,7 @@ export const OwnerDashboardScreen = ({ navigation }) => {
             style={styles.actionButton}
             onPress={() => navigation.navigate('OwnerPayments')}
           >
-            <Text style={styles.actionEmoji}>💳</Text>
+            <CreditCard size={22} color={COLORS.primary} style={{ marginBottom: 4 }} />
             <Text style={styles.actionText}>Payments</Text>
           </TouchableOpacity>
         </View>

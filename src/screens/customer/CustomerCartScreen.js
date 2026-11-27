@@ -12,8 +12,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { ShoppingCart, Truck, Store, Sunrise, Sun, Moon } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card } from '../../components/Card';
@@ -98,17 +99,17 @@ export const CustomerCartScreen = ({ navigation }) => {
 
   const handlePlaceOrder = async () => {
     if (cart.items.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to your cart first.');
+      CustomAlert.alert('Empty Cart', 'Please add items to your cart first.');
       return;
     }
 
     if (noFulfillmentAvailable) {
-      Alert.alert('Unavailable', 'This provider is currently not accepting delivery or pickup orders.');
+      CustomAlert.alert('Unavailable', 'This provider is currently not accepting delivery or pickup orders.');
       return;
     }
 
     if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
-      Alert.alert('Address Required', 'Please enter your delivery address.');
+      CustomAlert.alert('Address Required', 'Please enter your delivery address.');
       return;
     }
 
@@ -133,7 +134,7 @@ export const CustomerCartScreen = ({ navigation }) => {
       setSubmitting(false);
       dispatch(clearCart());
 
-      Alert.alert(
+      CustomAlert.alert(
         'Order Placed! 🍱',
         'Your daily meal order has been received by the kitchen.',
         [
@@ -145,14 +146,14 @@ export const CustomerCartScreen = ({ navigation }) => {
       );
     } catch (err) {
       setSubmitting(false);
-      Alert.alert('Error', err.message || 'Failed to place order');
+      CustomAlert.alert('Error', err.message || 'Failed to place order');
     }
   };
 
   if (cart.items.length === 0) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <Text style={styles.emptyIcon}>🛒</Text>
+        <ShoppingCart size={52} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
         <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
         <Text style={styles.emptySubtitle}>
           Browse homemade tiffin providers and add your favorite dishes.
@@ -228,26 +229,32 @@ export const CustomerCartScreen = ({ navigation }) => {
           <Card style={styles.card}>
             <Text style={styles.cardHeading}>Meal Timing</Text>
             <View style={styles.optionRow}>
-              {MEAL_TIMINGS.map((timing) => (
-                <TouchableOpacity
-                  key={timing.key}
-                  onPress={() => setMealTiming(timing.key)}
-                  style={[
-                    styles.optionBtn,
-                    mealTiming === timing.key && styles.activeOptionBtn,
-                  ]}
-                >
-                  <Text
+              {MEAL_TIMINGS.map((timing) => {
+                const active = mealTiming === timing.key;
+                const TimingIcon = timing.key === 'breakfast' ? Sunrise : timing.key === 'lunch' ? Sun : Moon;
+                return (
+                  <TouchableOpacity
+                    key={timing.key}
+                    onPress={() => setMealTiming(timing.key)}
                     style={[
-                      styles.optionText,
-                      mealTiming === timing.key && styles.activeOptionText,
+                      styles.optionBtn,
+                      active && styles.activeOptionBtn,
+                      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
                     ]}
-                    numberOfLines={1}
                   >
-                    {timing.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <TimingIcon size={14} color={active ? '#FFF' : COLORS.textSecondary} />
+                    <Text
+                      style={[
+                        styles.optionText,
+                        active && styles.activeOptionText,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {timing.key.charAt(0).toUpperCase() + timing.key.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <Text style={[styles.cardHeading, { marginTop: 16 }]}>Delivery Option</Text>
@@ -265,15 +272,17 @@ export const CustomerCartScreen = ({ navigation }) => {
                     style={[
                       styles.optionBtn,
                       deliveryType === 'delivery' && styles.activeOptionBtn,
+                      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
                     ]}
                   >
+                    <Truck size={15} color={deliveryType === 'delivery' ? '#FFF' : COLORS.textSecondary} />
                     <Text
                       style={[
                         styles.optionText,
                         deliveryType === 'delivery' && styles.activeOptionText,
                       ]}
                     >
-                      🛵 Doorstep Delivery
+                      Doorstep Delivery
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -284,15 +293,17 @@ export const CustomerCartScreen = ({ navigation }) => {
                     style={[
                       styles.optionBtn,
                       deliveryType === 'pickup' && styles.activeOptionBtn,
+                      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
                     ]}
                   >
+                    <Store size={15} color={deliveryType === 'pickup' ? '#FFF' : COLORS.textSecondary} />
                     <Text
                       style={[
                         styles.optionText,
                         deliveryType === 'pickup' && styles.activeOptionText,
                       ]}
                     >
-                      🚶 Kitchen Pickup
+                      Kitchen Pickup
                     </Text>
                   </TouchableOpacity>
                 )}

@@ -14,13 +14,14 @@ import {
   Switch,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
+import { Pencil, Trash2, UtensilsCrossed, X } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 
@@ -97,14 +98,14 @@ export const OwnerMenuScreen = () => {
         prev.map((item) => (item.id === id ? { ...item, is_available: !item.is_available } : item))
       );
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to toggle availability');
+      CustomAlert.alert('Error', err.message || 'Failed to toggle availability');
     }
   };
 
   const handleSaveItem = async () => {
     const parsedPrice = parseFloat(price);
     if (!name.trim() || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert('Required Fields', 'Please enter a valid item name and price.');
+      CustomAlert.alert('Required Fields', 'Please enter a valid item name and price.');
       return;
     }
 
@@ -129,13 +130,13 @@ export const OwnerMenuScreen = () => {
       setModalVisible(false);
       resetForm();
       fetchMenu();
-      Alert.alert(
+      CustomAlert.alert(
         'Success',
         editingItem ? 'Food item updated!' : 'Food item added to menu!'
       );
     } catch (err) {
       setSubmitting(false);
-      Alert.alert(
+      CustomAlert.alert(
         'Error',
         err.message || `Failed to ${editingItem ? 'update' : 'create'} menu item`
       );
@@ -143,7 +144,7 @@ export const OwnerMenuScreen = () => {
   };
 
   const handleDeleteItem = (id, itemName) => {
-    Alert.alert('Confirm Delete', `Are you sure you want to delete "${itemName}"?`, [
+    CustomAlert.alert('Confirm Delete', `Are you sure you want to delete "${itemName}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -153,7 +154,7 @@ export const OwnerMenuScreen = () => {
             await ownerApi.deleteMenuItem(id);
             setMenuItems((prev) => prev.filter((i) => i.id !== id));
           } catch (err) {
-            Alert.alert('Error', err.message || 'Failed to delete item');
+            CustomAlert.alert('Error', err.message || 'Failed to delete item');
           }
         },
       },
@@ -193,15 +194,16 @@ export const OwnerMenuScreen = () => {
           <View style={styles.footerActions}>
             <TouchableOpacity
               onPress={() => openEditModal(item)}
-              style={styles.editBtn}
+              style={[styles.editBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}
             >
-              <Text style={styles.editText}>✏️ Edit</Text>
+              <Pencil size={13} color={COLORS.primary} />
+              <Text style={styles.editText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleDeleteItem(item.id, item.name)}
               style={styles.deleteBtn}
             >
-              <Text style={styles.deleteText}>🗑️</Text>
+              <Trash2 size={18} color={COLORS.danger} />
             </TouchableOpacity>
           </View>
         </View>
@@ -236,7 +238,7 @@ export const OwnerMenuScreen = () => {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🥘</Text>
+              <UtensilsCrossed size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Menu Items</Text>
               <Text style={styles.emptySubtitle}>
                 Add your delicious homemade dishes so customers can discover and order.
@@ -268,7 +270,7 @@ export const OwnerMenuScreen = () => {
                   resetForm();
                 }}
               >
-                <Text style={styles.closeBtn}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 

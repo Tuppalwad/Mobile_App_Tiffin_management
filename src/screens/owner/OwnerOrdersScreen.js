@@ -13,12 +13,24 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import {
+  User,
+  Phone,
+  MapPin,
+  MessageCircle,
+  Truck,
+  Store,
+  FileText,
+  Inbox,
+  Check,
+  X,
+} from 'lucide-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
@@ -89,10 +101,10 @@ export const OwnerOrdersScreen = () => {
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await ownerApi.updateOrderStatus(orderId, newStatus);
-      Alert.alert('Status Updated', `Order marked as ${newStatus.replace(/_/g, ' ')}`);
+      CustomAlert.alert('Status Updated', `Order marked as ${newStatus.replace(/_/g, ' ')}`);
       fetchOrders();
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update order status');
+      CustomAlert.alert('Error', err.message || 'Failed to update order status');
     }
   };
 
@@ -114,12 +126,12 @@ export const OwnerOrdersScreen = () => {
       setCancellingOrder(null);
       setCancelReason('');
       fetchOrders();
-      Alert.alert(
+      CustomAlert.alert(
         'Order Cancelled',
         `Order #${orderNum} has been cancelled and customer notified via push notification.`
       );
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to cancel order');
+      CustomAlert.alert('Error', err.message || 'Failed to cancel order');
     } finally {
       setIsCancelling(false);
     }
@@ -147,20 +159,34 @@ export const OwnerOrdersScreen = () => {
         {/* Customer Info */}
         <View style={styles.customerBox}>
           <View style={styles.customerTopRow}>
-            <Text style={styles.customerName}>👤 {item.customer?.name || 'Customer'}</Text>
-            <View style={[styles.deliveryTypePill, isPickup ? styles.pickupPill : styles.deliveryPill]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <User size={14} color={COLORS.text} />
+              <Text style={styles.customerName}>{item.customer?.name || 'Customer'}</Text>
+            </View>
+            <View style={[styles.deliveryTypePill, isPickup ? styles.pickupPill : styles.deliveryPill, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+              {isPickup ? (
+                <Store size={12} color={COLORS.primary} />
+              ) : (
+                <Truck size={12} color={COLORS.secondary} />
+              )}
               <Text style={[styles.deliveryTypeText, isPickup ? styles.pickupPillText : styles.deliveryPillText]}>
-                {isPickup ? '🚶 Kitchen Pickup' : '🛵 Doorstep Delivery'}
+                {isPickup ? 'Kitchen Pickup' : 'Doorstep Delivery'}
               </Text>
             </View>
           </View>
-          <Text style={styles.customerPhone}>📞 {item.customer?.phone}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+            <Phone size={12} color={COLORS.textSecondary} />
+            <Text style={styles.customerPhone}>{item.customer?.phone}</Text>
+          </View>
           {!isPickup && customerDeliveryAddress ? (
-            <Text style={styles.customerAddress}>📍 {customerDeliveryAddress}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <MapPin size={12} color={COLORS.textSecondary} />
+              <Text style={[styles.customerAddress, { flex: 1 }]}>{customerDeliveryAddress}</Text>
+            </View>
           ) : null}
           {item.order_status === 'delivered' && item.customer_id && (
             <TouchableOpacity
-              style={styles.chatCustomerBtn}
+              style={[styles.chatCustomerBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={async () => {
                 try {
                   const res = await chatApi.startDirectChat(item.customer_id);
@@ -173,11 +199,12 @@ export const OwnerOrdersScreen = () => {
                     });
                   }
                 } catch (err) {
-                  Alert.alert('Chat Unavailable', err.message || 'Could not start chat');
+                  CustomAlert.alert('Chat Unavailable', err.message || 'Could not start chat');
                 }
               }}
             >
-              <Text style={styles.chatCustomerBtnText}>💬 Chat with Customer</Text>
+              <MessageCircle size={14} color={COLORS.primary} />
+              <Text style={styles.chatCustomerBtnText}>Chat with Customer</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -196,8 +223,9 @@ export const OwnerOrdersScreen = () => {
 
         {/* Notes / Special Instructions / Cancel Reason */}
         {item.notes ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesText}>📝 {item.notes}</Text>
+          <View style={[styles.notesBox, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+            <FileText size={13} color={COLORS.textSecondary} />
+            <Text style={[styles.notesText, { flex: 1 }]}>{item.notes}</Text>
           </View>
         ) : null}
 
@@ -221,7 +249,7 @@ export const OwnerOrdersScreen = () => {
               style={[styles.statusBtn, { backgroundColor: '#FF9800', flex: 1, marginRight: canCancelOrder ? 8 : 0 }]}
               onPress={() => handleUpdateStatus(item.id, 'preparing')}
             >
-              <Text style={styles.statusBtnText}>Start Preparing 🍲</Text>
+              <Text style={styles.statusBtnText}>Start Preparing</Text>
             </TouchableOpacity>
           )}
 
@@ -230,7 +258,7 @@ export const OwnerOrdersScreen = () => {
               style={[styles.statusBtn, { backgroundColor: '#1976D2', flex: 1, marginRight: canCancelOrder ? 8 : 0 }]}
               onPress={() => handleUpdateStatus(item.id, 'tiffin_ready')}
             >
-              <Text style={styles.statusBtnText}>Tiffin Ready 🍱</Text>
+              <Text style={styles.statusBtnText}>Tiffin Ready</Text>
             </TouchableOpacity>
           )}
 
@@ -239,34 +267,37 @@ export const OwnerOrdersScreen = () => {
               style={[styles.statusBtn, { backgroundColor: '#0288D1', flex: 1 }]}
               onPress={() => handleUpdateStatus(item.id, 'out_for_delivery')}
             >
-              <Text style={styles.statusBtnText}>Out for Delivery 🛵</Text>
+              <Text style={styles.statusBtnText}>Out for Delivery</Text>
             </TouchableOpacity>
           )}
 
           {item.order_status === 'tiffin_ready' && isPickup && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1 }]}
+              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
               onPress={() => handleUpdateStatus(item.id, 'delivered')}
             >
-              <Text style={styles.statusBtnText}>Mark Picked Up ✅</Text>
+              <Check size={15} color="#FFF" />
+              <Text style={styles.statusBtnText}>Mark Picked Up</Text>
             </TouchableOpacity>
           )}
 
           {item.order_status === 'out_for_delivery' && (
             <TouchableOpacity
-              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1 }]}
+              style={[styles.statusBtn, { backgroundColor: '#2E7D32', flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
               onPress={() => handleUpdateStatus(item.id, 'delivered')}
             >
-              <Text style={styles.statusBtnText}>Mark Delivered ✅</Text>
+              <Check size={15} color="#FFF" />
+              <Text style={styles.statusBtnText}>Mark Delivered</Text>
             </TouchableOpacity>
           )}
 
           {canCancelOrder && (
             <TouchableOpacity
-              style={[styles.cancelBtn, { flex: 0.8 }]}
+              style={[styles.cancelBtn, { flex: 0.8, flexDirection: 'row', justifyContent: 'center', gap: 4 }]}
               onPress={() => handleOpenCancelModal(item)}
             >
-              <Text style={styles.cancelBtnText}>Cancel ❌</Text>
+              <X size={14} color={COLORS.danger} />
+              <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -317,7 +348,7 @@ export const OwnerOrdersScreen = () => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📭</Text>
+              <Inbox size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Orders Found</Text>
               <Text style={styles.emptySubtitle}>
                 {selectedFilter ? 'No orders match this status filter.' : 'You have no customer orders right now.'}
@@ -336,7 +367,7 @@ export const OwnerOrdersScreen = () => {
         <KeyboardModalView style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Cancel Order ❌</Text>
+              <Text style={styles.modalTitle}>Cancel Order</Text>
               <Text style={styles.modalSubtitle}>
                 Order #{cancellingOrder?.order_number} • {cancellingOrder?.customer?.name || 'Customer'}
               </Text>

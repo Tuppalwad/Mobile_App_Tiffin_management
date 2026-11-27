@@ -28,7 +28,13 @@ export const Input = ({
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={[styles.inputWrapper, error && styles.inputError, !editable && styles.inputDisabled]}>
-        {prefix && <Text style={styles.prefix}>{prefix}</Text>}
+        {prefix ? (
+          typeof prefix === 'string' || typeof prefix === 'number' ? (
+            <Text style={styles.prefix}>{prefix}</Text>
+          ) : (
+            <View style={{ marginRight: 8 }}>{prefix}</View>
+          )
+        ) : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}

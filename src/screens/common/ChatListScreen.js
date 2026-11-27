@@ -16,9 +16,20 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Alert,
   Platform,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import {
+  Users,
+  User,
+  UtensilsCrossed,
+  ArrowLeft,
+  MessageCircle,
+  Package,
+  X,
+  Check,
+  ArrowRight,
+} from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
@@ -145,7 +156,7 @@ export const ChatListScreen = ({ navigation }) => {
         });
       }
     } catch (err) {
-      Alert.alert('Chat Error', err.message || 'Could not start chat');
+      CustomAlert.alert('Chat Error', err.message || 'Could not start chat');
     }
   };
 
@@ -157,11 +168,11 @@ export const ChatListScreen = ({ navigation }) => {
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
-      Alert.alert('Group Name Required', 'Please enter a name for the group.');
+      CustomAlert.alert('Group Name Required', 'Please enter a name for the group.');
       return;
     }
     if (selectedMemberIds.length === 0) {
-      Alert.alert('Select Members', 'Please select at least one customer to add.');
+      CustomAlert.alert('Select Members', 'Please select at least one customer to add.');
       return;
     }
 
@@ -183,7 +194,7 @@ export const ChatListScreen = ({ navigation }) => {
       }
     } catch (err) {
       setCreatingGroup(false);
-      Alert.alert('Error', err.message || 'Failed to create group');
+      CustomAlert.alert('Error', err.message || 'Failed to create group');
     }
   };
 
@@ -209,7 +220,13 @@ export const ChatListScreen = ({ navigation }) => {
       >
         <View style={styles.avatarContainer}>
           <View style={[styles.avatar, isGroup && styles.groupAvatar]}>
-            <Text style={styles.avatarEmoji}>{isGroup ? '👥' : isOwner ? '👤' : '🍱'}</Text>
+            {isGroup ? (
+              <Users size={22} color={COLORS.primary} />
+            ) : isOwner ? (
+              <User size={22} color={COLORS.primary} />
+            ) : (
+              <UtensilsCrossed size={22} color={COLORS.primary} />
+            )}
           </View>
           {isOnline && <View style={styles.onlineDot} />}
         </View>
@@ -247,7 +264,11 @@ export const ChatListScreen = ({ navigation }) => {
     >
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarEmoji}>{isOwner ? '👤' : '🍱'}</Text>
+          {isOwner ? (
+            <User size={22} color={COLORS.primary} />
+          ) : (
+            <UtensilsCrossed size={22} color={COLORS.primary} />
+          )}
         </View>
         {item.isOnline && <View style={styles.onlineDot} />}
       </View>
@@ -257,7 +278,10 @@ export const ChatListScreen = ({ navigation }) => {
           <Text style={styles.rowTitle} numberOfLines={1}>
             {item.displayName}
           </Text>
-          <Text style={styles.chatActionLabel}>Chat →</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Text style={styles.chatActionLabel}>Chat</Text>
+            <ArrowRight size={13} color={COLORS.primary} />
+          </View>
         </View>
 
         <Text style={styles.rowPreview} numberOfLines={1}>
@@ -274,7 +298,7 @@ export const ChatListScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
+          <ArrowLeft size={22} color={COLORS.text} />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
@@ -308,20 +332,26 @@ export const ChatListScreen = ({ navigation }) => {
       {/* Tabs */}
       <View style={styles.tabRow}>
         <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'chats' && styles.tabBtnActive]}
+          style={[styles.tabBtn, activeTab === 'chats' && styles.tabBtnActive, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
           onPress={() => setActiveTab('chats')}
         >
+          <MessageCircle size={15} color={activeTab === 'chats' ? COLORS.primary : COLORS.textSecondary} />
           <Text style={[styles.tabText, activeTab === 'chats' && styles.tabTextActive]}>
-            💬 Chats ({conversations.length})
+            Chats ({conversations.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'contacts' && styles.tabBtnActive]}
+          style={[styles.tabBtn, activeTab === 'contacts' && styles.tabBtnActive, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
           onPress={() => setActiveTab('contacts')}
         >
+          {isOwner ? (
+            <Package size={15} color={activeTab === 'contacts' ? COLORS.primary : COLORS.textSecondary} />
+          ) : (
+            <UtensilsCrossed size={15} color={activeTab === 'contacts' ? COLORS.primary : COLORS.textSecondary} />
+          )}
           <Text style={[styles.tabText, activeTab === 'contacts' && styles.tabTextActive]}>
-            {isOwner ? `📦 Delivered Users (${contacts.length})` : `🍱 Tiffin Owners (${contacts.length})`}
+            {isOwner ? `Delivered Users (${contacts.length})` : `Tiffin Owners (${contacts.length})`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -339,7 +369,7 @@ export const ChatListScreen = ({ navigation }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>💬</Text>
+              <MessageCircle size={48} color={COLORS.textMuted} style={{ marginBottom: 10 }} />
               <Text style={styles.emptyTitle}>No Conversations Yet</Text>
               <Text style={styles.emptySub}>
                 {isOwner
@@ -366,7 +396,11 @@ export const ChatListScreen = ({ navigation }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>{isOwner ? '📦' : '🍱'}</Text>
+              {isOwner ? (
+                <Package size={48} color={COLORS.textMuted} style={{ marginBottom: 10 }} />
+              ) : (
+                <UtensilsCrossed size={48} color={COLORS.textMuted} style={{ marginBottom: 10 }} />
+              )}
               <Text style={styles.emptyTitle}>
                 {isOwner ? 'No Delivered Customers Yet' : 'No Tiffin Owners Found'}
               </Text>
@@ -390,9 +424,9 @@ export const ChatListScreen = ({ navigation }) => {
         <KeyboardModalView style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Customer Group 👥</Text>
+              <Text style={styles.modalTitle}>Create Customer Group</Text>
               <TouchableOpacity onPress={() => setGroupModalVisible(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -437,7 +471,7 @@ export const ChatListScreen = ({ navigation }) => {
                       <Text style={styles.memberPickSub}>{item.phone}</Text>
                     </View>
                     <View style={[styles.checkbox, selected && styles.checkboxActive]}>
-                      {selected && <Text style={styles.checkmark}>✓</Text>}
+                      {selected && <Check size={14} color="#FFF" />}
                     </View>
                   </TouchableOpacity>
                 );

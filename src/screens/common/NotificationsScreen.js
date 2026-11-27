@@ -14,13 +14,24 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { useSelector } from 'react-redux';
+import {
+  UtensilsCrossed,
+  PartyPopper,
+  PauseCircle,
+  CreditCard,
+  Bell,
+  X,
+  ArrowLeft,
+} from 'lucide-react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { notificationApi } from '../../api/notificationApi';
 import { useNotificationAutoRefresh } from '../../services/notificationEvents';
 
 export const NotificationsScreen = ({ navigation }) => {
+  const { role } = useSelector((state) => state.auth);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +80,7 @@ export const NotificationsScreen = ({ navigation }) => {
 
     // Optional navigation based on reference
     if (item.reference_type === 'order') {
-      Alert.alert(
+      CustomAlert.alert(
         item.title || 'Order Notification',
         item.message,
         [
@@ -77,21 +88,24 @@ export const NotificationsScreen = ({ navigation }) => {
           {
             text: 'View Orders',
             onPress: () => {
-              // Navigate back and let user view their Orders tab
-              navigation.goBack();
+              if (role === 'owner') {
+                navigation.navigate('OwnerTabs', { screen: 'OwnerOrders' });
+              } else {
+                navigation.navigate('CustomerTabs', { screen: 'CustomerOrders' });
+              }
             },
           },
         ]
       );
     } else {
-      Alert.alert(item.title || 'Notification', item.message, [{ text: 'OK' }]);
+      CustomAlert.alert(item.title || 'Notification', item.message, [{ text: 'OK' }]);
     }
   };
 
   const handleClearAll = () => {
     if (notifications.length === 0) return;
 
-    Alert.alert(
+    CustomAlert.alert(
       'Clear All Notifications',
       'Are you sure you want to delete all notifications?',
       [
@@ -112,18 +126,18 @@ export const NotificationsScreen = ({ navigation }) => {
     );
   };
 
-  const getNotificationIcon = (type) => {
+  const renderNotificationIcon = (type) => {
     switch (type) {
       case 'order':
-        return '🍱';
+        return <UtensilsCrossed size={20} color={COLORS.primary} />;
       case 'subscription':
-        return '🎉';
+        return <PartyPopper size={20} color={COLORS.secondary} />;
       case 'skip':
-        return '⏸️';
+        return <PauseCircle size={20} color={COLORS.warning} />;
       case 'payment':
-        return '💳';
+        return <CreditCard size={20} color={COLORS.info} />;
       default:
-        return '🔔';
+        return <Bell size={20} color={COLORS.primary} />;
     }
   };
 
@@ -153,7 +167,7 @@ export const NotificationsScreen = ({ navigation }) => {
         onPress={() => handleNotificationPress(item)}
       >
         <View style={styles.iconCircle}>
-          <Text style={styles.iconText}>{getNotificationIcon(item.type)}</Text>
+          {renderNotificationIcon(item.type)}
         </View>
 
         <View style={styles.contentBox}>
@@ -175,7 +189,7 @@ export const NotificationsScreen = ({ navigation }) => {
           style={styles.deleteBtn}
           onPress={() => handleNotificationPress(item)}
         >
-          <Text style={styles.deleteBtnText}>✕</Text>
+          <X size={16} color={COLORS.textSecondary} />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -185,8 +199,9 @@ export const NotificationsScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Back</Text>
+        <TouchableOpacity style={[styles.backButton, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} onPress={() => navigation.goBack()}>
+          <ArrowLeft size={18} color={COLORS.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         {notifications.length > 0 ? (
@@ -215,7 +230,7 @@ export const NotificationsScreen = ({ navigation }) => {
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 60 }} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <Bell size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Notifications</Text>
               <Text style={styles.emptySubtitle}>
                 You're all caught up! New alerts and order updates will appear here.

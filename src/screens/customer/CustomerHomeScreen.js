@@ -16,6 +16,17 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
+import {
+  UtensilsCrossed,
+  MapPin,
+  Clock,
+  ArrowRight,
+  MessageCircle,
+  Bell,
+  ShoppingCart,
+  PauseCircle,
+  Search,
+} from 'lucide-react-native';
 import { Card, Badge } from '../../components/Card';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
@@ -102,14 +113,22 @@ export const CustomerHomeScreen = ({ navigation }) => {
         <Card style={styles.providerCard}>
           <View style={styles.providerHeader}>
             <View style={styles.avatarBox}>
-              <Text style={{ fontSize: 28 }}>🍱</Text>
+              <UtensilsCrossed size={26} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.providerName}>{item.business_name}</Text>
-              <Text style={styles.providerArea}>
-                📍 {item.city || 'Nearby'} {item.service_radius_km ? `• Within ${item.service_radius_km} km` : ''}
-                {kitchenHours ? ` • ⏰ ${kitchenHours}` : ''}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+                <MapPin size={12} color={COLORS.textSecondary} />
+                <Text style={styles.providerArea}>
+                  {item.city || 'Nearby'} {item.service_radius_km ? `• Within ${item.service_radius_km} km` : ''}
+                </Text>
+                {kitchenHours ? (
+                  <>
+                    <Clock size={12} color={COLORS.textSecondary} style={{ marginLeft: 4 }} />
+                    <Text style={styles.providerArea}>{kitchenHours}</Text>
+                  </>
+                ) : null}
+              </View>
               <View style={styles.badgeRow}>
                 <Badge text={fulfillmentLabel} status="active" />
                 <Text style={styles.menuMetaText}>
@@ -125,8 +144,9 @@ export const CustomerHomeScreen = ({ navigation }) => {
             </Text>
           ) : null}
 
-          <View style={styles.viewMenuRow}>
-            <Text style={styles.viewMenuText}>View Menu & Plans →</Text>
+          <View style={[styles.viewMenuRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }]}>
+            <Text style={styles.viewMenuText}>View Menu & Plans</Text>
+            <ArrowRight size={14} color={COLORS.primary} />
           </View>
         </Card>
       </TouchableOpacity>
@@ -146,7 +166,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
             {/* Header Greeting */}
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.greeting}>Hello, {user?.name || 'Foodie'} 👋</Text>
+                <Text style={styles.greeting}>Hello, {user?.name || 'Foodie'}</Text>
                 <Text style={styles.tagline}>Craving healthy ghar ka khana?</Text>
               </View>
 
@@ -155,7 +175,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
                   style={[styles.notifBtn, { marginRight: 10 }]}
                   onPress={() => navigation.navigate('ChatList')}
                 >
-                  <Text style={{ fontSize: 21 }}>💬</Text>
+                  <MessageCircle size={22} color={COLORS.text} />
                   {unreadChatCount > 0 && (
                     <View style={styles.cartBadge}>
                       <Text style={styles.cartBadgeText}>
@@ -169,7 +189,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
                   style={styles.notifBtn}
                   onPress={() => navigation.navigate('Notifications')}
                 >
-                  <Text style={{ fontSize: 22 }}>🔔</Text>
+                  <Bell size={22} color={COLORS.text} />
                   {unreadCount > 0 && (
                     <View style={styles.cartBadge}>
                       <Text style={styles.cartBadgeText}>
@@ -184,7 +204,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
                     style={[styles.cartBtn, { marginLeft: 10 }]}
                     onPress={() => navigation.navigate('CustomerCart')}
                   >
-                    <Text style={{ fontSize: 20 }}>🛒</Text>
+                    <ShoppingCart size={20} color={COLORS.text} />
                     <View style={styles.cartBadge}>
                       <Text style={styles.cartBadgeText}>{cart.items.length}</Text>
                     </View>
@@ -208,18 +228,19 @@ export const CustomerHomeScreen = ({ navigation }) => {
                 </Text>
 
                 <TouchableOpacity
-                  style={styles.skipButton}
+                  style={[styles.skipButton, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
                   onPress={() => navigation.navigate('CustomerSubscriptions')}
                 >
-                  <Text style={styles.skipButtonText}>Manage or Skip Today's Meal ⏸️</Text>
+                  <PauseCircle size={15} color={COLORS.primary} />
+                  <Text style={styles.skipButtonText}>Manage or Skip Today's Meal</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {/* Search Bar */}
             <Input
-              placeholder="Search tiffin providers, thali, Punjabi, Jain..."
-              prefix="🔍"
+              placeholder="Search tiffin providers"
+              prefix={<Search size={18} color={COLORS.textMuted} />}
               value={search}
               onChangeText={setSearch}
               style={{ marginTop: 12, marginBottom: 8 }}
@@ -233,7 +254,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🔍</Text>
+              <Search size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Providers Found</Text>
               <Text style={styles.emptySubtitle}>Try adjusting your search query.</Text>
             </View>

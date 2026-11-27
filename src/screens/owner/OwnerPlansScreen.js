@@ -13,13 +13,14 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
+import { CalendarDays, Sun, Pencil, X, Check } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 
@@ -105,7 +106,7 @@ export const OwnerPlansScreen = () => {
   const handleSavePlan = async () => {
     const parsedPrice = parseFloat(price);
     if (!name.trim() || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert('Required Fields', 'Please enter a valid plan name and price.');
+      CustomAlert.alert('Required Fields', 'Please enter a valid plan name and price.');
       return;
     }
 
@@ -135,13 +136,13 @@ export const OwnerPlansScreen = () => {
       setModalVisible(false);
       resetForm();
       fetchData();
-      Alert.alert(
+      CustomAlert.alert(
         'Success',
         editingPlan ? 'Subscription plan updated!' : 'Subscription plan created!'
       );
     } catch (err) {
       setSubmitting(false);
-      Alert.alert(
+      CustomAlert.alert(
         'Error',
         err.message || `Failed to ${editingPlan ? 'update' : 'create'} plan`
       );
@@ -149,7 +150,7 @@ export const OwnerPlansScreen = () => {
   };
 
   const handleDeletePlan = (id, planName) => {
-    Alert.alert('Confirm Delete', `Deactivate "${planName}"?`, [
+    CustomAlert.alert('Confirm Delete', `Deactivate "${planName}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Deactivate',
@@ -159,7 +160,7 @@ export const OwnerPlansScreen = () => {
             await ownerApi.deletePlan(id);
             setPlans((prev) => prev.filter((p) => p.id !== id));
           } catch (err) {
-            Alert.alert('Error', err.message || 'Failed to delete plan');
+            CustomAlert.alert('Error', err.message || 'Failed to delete plan');
           }
         },
       },
@@ -172,9 +173,16 @@ export const OwnerPlansScreen = () => {
         <View style={styles.planHeader}>
           <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.planName}>{item.name}</Text>
-            <Text style={styles.planMeta}>
-              {item.plan_type === 'monthly' ? '📅 Monthly Subscription' : '☀️ Daily Plan'} • {item.duration_days} Days
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              {item.plan_type === 'monthly' ? (
+                <CalendarDays size={13} color={COLORS.textSecondary} />
+              ) : (
+                <Sun size={13} color={COLORS.warning} />
+              )}
+              <Text style={styles.planMeta}>
+                {item.plan_type === 'monthly' ? 'Monthly Subscription' : 'Daily Plan'} • {item.duration_days} Days
+              </Text>
+            </View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={styles.planPrice}>₹{item.price}</Text>
@@ -204,9 +212,10 @@ export const OwnerPlansScreen = () => {
           <View style={styles.footerActions}>
             <TouchableOpacity
               onPress={() => openEditModal(item)}
-              style={styles.editBtn}
+              style={[styles.editBtn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}
             >
-              <Text style={styles.editText}>✏️ Edit</Text>
+              <Pencil size={13} color={COLORS.primary} />
+              <Text style={styles.editText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleDeletePlan(item.id, item.name)}
@@ -247,7 +256,7 @@ export const OwnerPlansScreen = () => {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📅</Text>
+              <CalendarDays size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>No Subscription Plans</Text>
               <Text style={styles.emptySubtitle}>
                 Create monthly meal subscriptions to get recurring daily customers.
@@ -279,7 +288,7 @@ export const OwnerPlansScreen = () => {
                   resetForm();
                 }}
               >
-                <Text style={styles.closeBtn}>✕</Text>
+                <X size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -339,9 +348,16 @@ export const OwnerPlansScreen = () => {
                         selectedMenuItemId === mi.id && styles.activeMenuSelect,
                       ]}
                     >
-                      <Text style={[styles.menuSelectText, selectedMenuItemId === mi.id && styles.activeSelectText]}>
-                        {selectedMenuItemId === mi.id ? '✓ ' : '○ '} {mi.name} (₹{mi.price})
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {selectedMenuItemId === mi.id ? (
+                          <Check size={15} color={COLORS.primary} />
+                        ) : (
+                          <View style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: COLORS.textMuted }} />
+                        )}
+                        <Text style={[styles.menuSelectText, selectedMenuItemId === mi.id && styles.activeSelectText]}>
+                          {mi.name} (₹{mi.price})
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </View>

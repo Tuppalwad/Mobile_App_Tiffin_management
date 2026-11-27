@@ -11,8 +11,9 @@ import {
   Platform,
   ScrollView,
   Keyboard,
-  Alert,
 } from 'react-native';
+import { CustomAlert } from "../../components/CustomAlert";
+import { UtensilsCrossed } from 'lucide-react-native';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
@@ -65,7 +66,7 @@ export const LoginScreen = ({ navigation }) => {
       navigation.navigate('Otp', { phone, receivedOtp });
     } catch (err) {
       setLoading(false);
-      Alert.alert('Error', err.message || 'Failed to send OTP. Please try again.');
+      CustomAlert.alert('Error', err.message || 'Failed to send OTP. Please try again.');
     }
   };
 
@@ -83,7 +84,9 @@ export const LoginScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
           <View style={styles.header}>
-            <Text style={styles.logo}>🍱</Text>
+            <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: '#FFF3E0', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <UtensilsCrossed size={42} color={COLORS.primary} />
+            </View>
             <Text style={styles.title}>Homemade Tiffin</Text>
             <Text style={styles.subtitle}>Ghar jaisa swad, har roz apke paas</Text>
           </View>
