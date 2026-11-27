@@ -27,6 +27,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
@@ -84,7 +85,9 @@ export const ChatRoomScreen = ({ route, navigation }) => {
   const [selectedNewIds, setSelectedNewIds] = useState([]);
   const [addingMembers, setAddingMembers] = useState(false);
 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const keyboardVisible = keyboardHeight > 0;
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingSentRef = useRef(false);
@@ -93,6 +96,9 @@ export const ChatRoomScreen = ({ route, navigation }) => {
     try {
       const res = await chatApi.getMessages(conversationId, { page: 1, pageSize: 80 });
       setMessages(res?.data?.items || []);
+      if (res?.data?.peerOnline !== undefined && !chatSocketService.isConnected()) {
+        setPeerOnline(Boolean(res.data.peerOnline));
+      }
       if (Array.isArray(res?.data?.typingUsers)) {
         const nextTyping = {};
         res.data.typingUsers.forEach((u) => {
@@ -114,12 +120,12 @@ export const ChatRoomScreen = ({ route, navigation }) => {
   // Real-time refresh when FCM chat notification arrives
   useNotificationAutoRefresh(['chat', 'NEW_CHAT_MESSAGE'], () => loadMessages(true));
 
-  // Track keyboard visibility and auto-scroll when keyboard opens
+  // Track keyboard height and auto-scroll when keyboard opens
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setKeyboardVisible(true);
+      (e) => {
+        setKeyboardHeight(e?.endCoordinates?.height || 0);
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 120);
@@ -128,7 +134,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        setKeyboardVisible(false);
+        setKeyboardHeight(0);
       }
     );
     return () => {
@@ -581,10 +587,13 @@ export const ChatRoomScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={0}
-        style={styles.flex}
+      <View
+        style={[
+          styles.flex,
+          Platform.OS === 'ios' && keyboardHeight > 0 && {
+            paddingBottom: Math.max(0, keyboardHeight - insets.bottom),
+          },
+        ]}
       >
         {loading ? (
           <View style={styles.center}>
@@ -678,7 +687,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Long-Press Message Action Sheet Modal */}
       <Modal

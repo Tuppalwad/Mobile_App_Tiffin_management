@@ -39,6 +39,7 @@ export const OwnerMenuScreen = () => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -47,6 +48,32 @@ export const OwnerMenuScreen = () => {
   const [price, setPrice] = useState('');
   const [mealType, setMealType] = useState('lunch');
   const [servingSize, setServingSize] = useState('1 Person');
+
+  const resetForm = () => {
+    setEditingItem(null);
+    setName('');
+    setDescription('');
+    setCategory('Full Tiffin');
+    setPrice('');
+    setMealType('lunch');
+    setServingSize('1 Person');
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setModalVisible(true);
+  };
+
+  const openEditModal = (item) => {
+    setEditingItem(item);
+    setName(item.name || '');
+    setDescription(item.description || '');
+    setCategory(item.category || 'Full Tiffin');
+    setPrice(item.price !== undefined && item.price !== null ? String(item.price) : '');
+    setMealType(item.meal_type || 'lunch');
+    setServingSize(item.serving_size || '1 Person');
+    setModalVisible(true);
+  };
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -74,34 +101,44 @@ export const OwnerMenuScreen = () => {
     }
   };
 
-  const handleCreateItem = async () => {
-    if (!name.trim() || !price) {
-      Alert.alert('Required Fields', 'Please enter item name and price.');
+  const handleSaveItem = async () => {
+    const parsedPrice = parseFloat(price);
+    if (!name.trim() || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert('Required Fields', 'Please enter a valid item name and price.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await ownerApi.createMenuItem({
+      const payload = {
         name: name.trim(),
         description: description.trim(),
         category,
-        price: parseFloat(price),
+        price: parsedPrice,
         meal_type: mealType,
         serving_size: servingSize,
-      });
+      };
+
+      if (editingItem) {
+        await ownerApi.updateMenuItem(editingItem.id, payload);
+      } else {
+        await ownerApi.createMenuItem(payload);
+      }
 
       setSubmitting(false);
       setModalVisible(false);
-      // Reset form
-      setName('');
-      setDescription('');
-      setPrice('');
+      resetForm();
       fetchMenu();
-      Alert.alert('Success', 'Food item added to menu!');
+      Alert.alert(
+        'Success',
+        editingItem ? 'Food item updated!' : 'Food item added to menu!'
+      );
     } catch (err) {
       setSubmitting(false);
-      Alert.alert('Error', err.message || 'Failed to create menu item');
+      Alert.alert(
+        'Error',
+        err.message || `Failed to ${editingItem ? 'update' : 'create'} menu item`
+      );
     }
   };
 
@@ -153,12 +190,20 @@ export const OwnerMenuScreen = () => {
             />
           </View>
 
-          <TouchableOpacity
-            onPress={() => handleDeleteItem(item.id, item.name)}
-            style={styles.deleteBtn}
-          >
-            <Text style={styles.deleteText}>🗑️</Text>
-          </TouchableOpacity>
+          <View style={styles.footerActions}>
+            <TouchableOpacity
+              onPress={() => openEditModal(item)}
+              style={styles.editBtn}
+            >
+              <Text style={styles.editText}>✏️ Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleDeleteItem(item.id, item.name)}
+              style={styles.deleteBtn}
+            >
+              <Text style={styles.deleteText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Card>
     );
@@ -173,7 +218,7 @@ export const OwnerMenuScreen = () => {
         </View>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => setModalVisible(true)}
+          onPress={openCreateModal}
         >
           <Text style={styles.addBtnText}>+ Add Item</Text>
         </TouchableOpacity>
@@ -201,13 +246,28 @@ export const OwnerMenuScreen = () => {
         />
       )}
 
-      {/* Add Item Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      {/* Add / Edit Item Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setModalVisible(false);
+          resetForm();
+        }}
+      >
         <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add New Food Item</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalTitle}>
+                {editingItem ? 'Edit Food Item' : 'Add New Food Item'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  resetForm();
+                }}
+              >
                 <Text style={styles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -286,8 +346,8 @@ export const OwnerMenuScreen = () => {
               </View>
 
               <Button
-                title="Save Food Item"
-                onPress={handleCreateItem}
+                title={editingItem ? 'Update Food Item' : 'Save Food Item'}
+                onPress={handleSaveItem}
                 loading={submitting}
                 style={{ marginTop: 20 }}
               />
@@ -383,6 +443,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginRight: 8,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: '#FFF5EB',
+  },
+  editText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   deleteBtn: {
     padding: 6,

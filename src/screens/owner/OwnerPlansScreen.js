@@ -29,6 +29,7 @@ export const OwnerPlansScreen = () => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -38,6 +39,46 @@ export const OwnerPlansScreen = () => {
   const [durationDays, setDurationDays] = useState('30');
   const [deliveryCharges, setDeliveryCharges] = useState('0');
   const [selectedMenuItemId, setSelectedMenuItemId] = useState(null);
+
+  const resetForm = (itemsList = menuItems) => {
+    setEditingPlan(null);
+    setName('');
+    setDescription('');
+    setPlanType('monthly');
+    setPrice('');
+    setDurationDays('30');
+    setDeliveryCharges('0');
+    setSelectedMenuItemId(itemsList.length > 0 ? itemsList[0].id : null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setModalVisible(true);
+  };
+
+  const openEditModal = (plan) => {
+    setEditingPlan(plan);
+    setName(plan.name || '');
+    setDescription(plan.description || '');
+    setPlanType(plan.plan_type || 'monthly');
+    setPrice(plan.price !== undefined && plan.price !== null ? String(plan.price) : '');
+    setDurationDays(
+      plan.duration_days !== undefined && plan.duration_days !== null
+        ? String(plan.duration_days)
+        : '30'
+    );
+    setDeliveryCharges(
+      plan.delivery_charges !== undefined && plan.delivery_charges !== null
+        ? String(plan.delivery_charges)
+        : '0'
+    );
+    const firstItemId =
+      plan.planItems?.[0]?.menu_item_id ||
+      plan.planItems?.[0]?.menuItem?.id ||
+      (menuItems.length > 0 ? menuItems[0].id : null);
+    setSelectedMenuItemId(firstItemId);
+    setModalVisible(true);
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -61,9 +102,10 @@ export const OwnerPlansScreen = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleCreatePlan = async () => {
-    if (!name.trim() || !price) {
-      Alert.alert('Required Fields', 'Please enter plan name and price.');
+  const handleSavePlan = async () => {
+    const parsedPrice = parseFloat(price);
+    if (!name.trim() || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert('Required Fields', 'Please enter a valid plan name and price.');
       return;
     }
 
@@ -73,26 +115,36 @@ export const OwnerPlansScreen = () => {
         ? [{ menu_item_id: selectedMenuItemId, quantity: 1 }]
         : [];
 
-      await ownerApi.createPlan({
+      const payload = {
         name: name.trim(),
         description: description.trim(),
         plan_type: planType,
-        price: parseFloat(price),
+        price: parsedPrice,
         duration_days: parseInt(durationDays, 10) || 30,
         delivery_charges: parseFloat(deliveryCharges) || 0,
         items,
-      });
+      };
+
+      if (editingPlan) {
+        await ownerApi.updatePlan(editingPlan.id, payload);
+      } else {
+        await ownerApi.createPlan(payload);
+      }
 
       setSubmitting(false);
       setModalVisible(false);
-      setName('');
-      setDescription('');
-      setPrice('');
+      resetForm();
       fetchData();
-      Alert.alert('Success', 'Subscription plan created!');
+      Alert.alert(
+        'Success',
+        editingPlan ? 'Subscription plan updated!' : 'Subscription plan created!'
+      );
     } catch (err) {
       setSubmitting(false);
-      Alert.alert('Error', err.message || 'Failed to create plan');
+      Alert.alert(
+        'Error',
+        err.message || `Failed to ${editingPlan ? 'update' : 'create'} plan`
+      );
     }
   };
 
@@ -149,12 +201,20 @@ export const OwnerPlansScreen = () => {
           <Text style={styles.deliveryInfo}>
             Delivery: {parseFloat(item.delivery_charges) === 0 ? 'Free' : `₹${item.delivery_charges}`}
           </Text>
-          <TouchableOpacity
-            onPress={() => handleDeletePlan(item.id, item.name)}
-            style={styles.deleteBtn}
-          >
-            <Text style={styles.deleteText}>Deactivate</Text>
-          </TouchableOpacity>
+          <View style={styles.footerActions}>
+            <TouchableOpacity
+              onPress={() => openEditModal(item)}
+              style={styles.editBtn}
+            >
+              <Text style={styles.editText}>✏️ Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleDeletePlan(item.id, item.name)}
+              style={styles.deleteBtn}
+            >
+              <Text style={styles.deleteText}>Deactivate</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Card>
     );
@@ -169,7 +229,7 @@ export const OwnerPlansScreen = () => {
         </View>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => setModalVisible(true)}
+          onPress={openCreateModal}
         >
           <Text style={styles.addBtnText}>+ New Plan</Text>
         </TouchableOpacity>
@@ -197,13 +257,28 @@ export const OwnerPlansScreen = () => {
         />
       )}
 
-      {/* Create Plan Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      {/* Create / Edit Plan Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setModalVisible(false);
+          resetForm();
+        }}
+      >
         <KeyboardModalView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Subscription Plan</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalTitle}>
+                {editingPlan ? 'Edit Subscription Plan' : 'Create Subscription Plan'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  resetForm();
+                }}
+              >
                 <Text style={styles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -273,8 +348,8 @@ export const OwnerPlansScreen = () => {
               )}
 
               <Button
-                title="Save Subscription Plan"
-                onPress={handleCreatePlan}
+                title={editingPlan ? 'Update Subscription Plan' : 'Save Subscription Plan'}
+                onPress={handleSavePlan}
                 loading={submitting}
                 style={{ marginTop: 10 }}
               />
@@ -385,6 +460,22 @@ const styles = StyleSheet.create({
   deliveryInfo: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: '#FFF5EB',
+  },
+  editText: {
+    color: COLORS.primary,
+    fontSize: 13,
     fontWeight: '600',
   },
   deleteBtn: {
