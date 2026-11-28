@@ -64,6 +64,8 @@ export const chatApi = {
     chatClient.post('/conversations/group', { name, description, memberIds }),
   addGroupMembers: (conversationId, memberIds) =>
     chatClient.post(`/conversations/${conversationId}/members`, { memberIds }),
+  removeGroupMember: (conversationId, userId) =>
+    chatClient.delete(`/conversations/${conversationId}/members/${userId}`),
   getMessages: (conversationId, params) =>
     chatClient.get(`/conversations/${conversationId}/messages`, { params }),
   sendMessage: (conversationId, payload) =>

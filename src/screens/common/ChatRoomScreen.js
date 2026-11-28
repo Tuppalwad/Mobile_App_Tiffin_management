@@ -98,6 +98,7 @@ export const ChatRoomScreen = ({ route, navigation }) => {
   const [eligibleContacts, setEligibleContacts] = useState([]);
   const [selectedNewIds, setSelectedNewIds] = useState([]);
   const [addingMembers, setAddingMembers] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState(null);
 
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -478,6 +479,38 @@ export const ChatRoomScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleRemoveGroupMember = (member) => {
+    const targetId = member.userId || member.id;
+    const memberName = member.displayName || member.name || 'this member';
+    CustomAlert.alert(
+      'Remove Member',
+      `Remove ${memberName} from "${title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setRemovingUserId(targetId);
+            try {
+              await chatApi.removeGroupMember(conversationId, targetId);
+              setParticipants((prev) =>
+                prev.filter((p) => (p.userId || p.id) !== targetId)
+              );
+              await openGroupInfoModal();
+              loadMessages(true);
+              CustomAlert.alert('Removed', `${memberName} has been removed from the group.`);
+            } catch (err) {
+              CustomAlert.alert('Error', err.message || 'Failed to remove member');
+            } finally {
+              setRemovingUserId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const typingNames = Object.values(typingUsers);
   const subtitleText =
     typingNames.length > 0
@@ -856,18 +889,51 @@ export const ChatRoomScreen = ({ route, navigation }) => {
               data={participants}
               keyExtractor={(p, idx) => String(p.userId || p.id || idx)}
               style={{ maxHeight: 160, marginBottom: 12 }}
-              renderItem={({ item }) => (
-                <View style={styles.memberRow}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <User size={14} color={COLORS.textSecondary} />
-                    <Text style={styles.memberRowName}>
-                      {item.displayName || item.name}
-                    </Text>
-                    {item.role === 'admin' && <Crown size={14} color={COLORS.warning} />}
+              renderItem={({ item }) => {
+                const memberId = item.userId || item.id;
+                const canRemove = isOwner && item.role !== 'admin' && memberId !== user?.id;
+                const isRemoving = removingUserId === memberId;
+                return (
+                  <View style={[styles.memberRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <User size={14} color={COLORS.textSecondary} />
+                        <Text style={styles.memberRowName}>
+                          {item.displayName || item.name}
+                        </Text>
+                        {item.role === 'admin' && <Crown size={14} color={COLORS.warning} />}
+                      </View>
+                      <Text style={styles.memberRowSub}>{item.phone}</Text>
+                    </View>
+                    {canRemove && (
+                      <TouchableOpacity
+                        onPress={() => handleRemoveGroupMember(item)}
+                        disabled={isRemoving}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: SIZES.radiusSm,
+                          backgroundColor: '#FFEBEE',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        {isRemoving ? (
+                          <ActivityIndicator size="small" color={COLORS.danger} />
+                        ) : (
+                          <>
+                            <Trash2 size={13} color={COLORS.danger} />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.danger }}>
+                              Remove
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  <Text style={styles.memberRowSub}>{item.phone}</Text>
-                </View>
-              )}
+                );
+              }}
             />
 
             {isOwner && eligibleContacts.length > 0 && (

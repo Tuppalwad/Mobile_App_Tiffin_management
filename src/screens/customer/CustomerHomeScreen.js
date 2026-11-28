@@ -26,6 +26,8 @@ import {
   ShoppingCart,
   PauseCircle,
   Search,
+  User,
+  Phone,
 } from 'lucide-react-native';
 import { Card, Badge } from '../../components/Card';
 import { Input } from '../../components/Input';
@@ -117,6 +119,22 @@ export const CustomerHomeScreen = ({ navigation }) => {
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.providerName}>{item.business_name}</Text>
+              {(item.user?.name || item.user?.phone) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+                  {item.user?.name ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <User size={12} color={COLORS.textSecondary} />
+                      <Text style={styles.providerArea}>{item.user.name}</Text>
+                    </View>
+                  ) : null}
+                  {item.user?.phone ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Phone size={12} color={COLORS.textSecondary} />
+                      <Text style={styles.providerArea}>{item.user.phone}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
               <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
                 <MapPin size={12} color={COLORS.textSecondary} />
                 <Text style={styles.providerArea}>

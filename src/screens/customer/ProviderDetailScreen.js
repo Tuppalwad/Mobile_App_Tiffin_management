@@ -14,7 +14,20 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
-import { MessageCircle, CalendarDays, Check, ShoppingCart, ArrowRight } from 'lucide-react-native';
+import {
+  MessageCircle,
+  CalendarDays,
+  Check,
+  ShoppingCart,
+  ArrowRight,
+  User,
+  Phone,
+  MapPin,
+  Truck,
+  Store,
+  Clock,
+  ArrowLeft,
+} from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Badge } from '../../components/Card';
@@ -107,27 +120,58 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         {/* Back Button */}
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back to Providers</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+          <ArrowLeft size={16} color={COLORS.primary} />
+          <Text style={styles.backText}>Back to Providers</Text>
         </TouchableOpacity>
 
         {/* Kitchen Profile Card */}
         <Card style={styles.profileCard}>
           <Text style={styles.businessName}>{provider?.business_name}</Text>
-          <Text style={styles.address}>📍 {provider?.address || `${provider?.city}, ${provider?.state}`}</Text>
+          {(provider?.user?.name || provider?.user?.phone) ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 4 }}>
+              {provider?.user?.name ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <User size={13} color={COLORS.textSecondary} />
+                  <Text style={styles.address}>{provider.user.name}</Text>
+                </View>
+              ) : null}
+              {provider?.user?.phone ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Phone size={13} color={COLORS.textSecondary} />
+                  <Text style={styles.address}>{provider.user.phone}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <MapPin size={13} color={COLORS.textSecondary} />
+            <Text style={[styles.address, { flex: 1 }]}>
+              {provider?.address || `${provider?.city || ''}, ${provider?.state || ''}`}
+            </Text>
+          </View>
           {provider?.description ? (
             <Text style={styles.desc}>{provider?.description}</Text>
           ) : null}
 
           <View style={styles.metaRow}>
             {canDeliver && (
-              <Text style={styles.metaBadge}>🛵 Doorstep Delivery</Text>
+              <View style={[styles.metaBadge, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <Truck size={12} color={COLORS.primary} />
+                <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' }}>Doorstep Delivery</Text>
+              </View>
             )}
             {canPickup && (
-              <Text style={styles.metaBadge}>🚶 Kitchen Pickup</Text>
+              <View style={[styles.metaBadge, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <Store size={12} color={COLORS.primary} />
+                <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' }}>Kitchen Pickup</Text>
+              </View>
             )}
             {kitchenHours ? (
-              <Text style={styles.metaBadge}>⏰ {kitchenHours}</Text>
+              <View style={[styles.metaBadge, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <Clock size={12} color={COLORS.primary} />
+                <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' }}>{kitchenHours}</Text>
+              </View>
             ) : null}
           </View>
 
