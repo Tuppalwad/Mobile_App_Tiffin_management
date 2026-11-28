@@ -31,7 +31,9 @@ import {
   Inbox,
   Check,
   X,
+  Navigation,
 } from 'lucide-react-native';
+import { openDirectionsInMaps } from '../../utils/locationUtils';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Card, Badge } from '../../components/Card';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
@@ -214,10 +216,39 @@ export const OwnerOrdersScreen = () => {
             <Text style={styles.customerPhone}>{item.customer?.phone}</Text>
           </View>
           {!isPickup && customerDeliveryAddress ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
-              <MapPin size={12} color={COLORS.textSecondary} />
-              <Text style={[styles.customerAddress, { flex: 1 }]}>{customerDeliveryAddress}</Text>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() =>
+                openDirectionsInMaps({
+                  latitude: item.delivery_latitude,
+                  longitude: item.delivery_longitude,
+                  address: customerDeliveryAddress,
+                })
+              }
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                marginTop: 6,
+                backgroundColor: '#FFF8F2',
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderRadius: SIZES.radiusSm,
+                borderWidth: 1,
+                borderColor: '#FFE0B2',
+              }}
+            >
+              <MapPin size={14} color={COLORS.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.customerAddress, { color: COLORS.text, fontWeight: '600' }]}>
+                  {customerDeliveryAddress}
+                </Text>
+                <Text style={{ fontSize: 11, color: COLORS.primary, fontWeight: '700', marginTop: 1 }}>
+                  Tap to open directions in Maps
+                </Text>
+              </View>
+              <Navigation size={15} color={COLORS.primary} />
+            </TouchableOpacity>
           ) : null}
           {item.customer_id && (
             <TouchableOpacity

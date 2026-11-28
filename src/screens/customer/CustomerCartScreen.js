@@ -15,12 +15,13 @@ import {
   Image,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
-import { ShoppingCart, Truck, Store, Sunrise, Sun, Moon } from 'lucide-react-native';
+import { ShoppingCart, Truck, Store, Sunrise, Sun, Moon, MapPin } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { MapPickerModal } from '../../components/MapPickerModal';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { updateQuantity, clearCart } from '../../store/slices/cartSlice';
 import { updateUser } from '../../store/slices/authSlice';
@@ -47,6 +48,8 @@ export const CustomerCartScreen = ({ navigation }) => {
   const [pickupAvailable, setPickupAvailable] = useState(true);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
 
   // Sync latest provider delivery/pickup settings and customer saved address on focus
   useFocusEffect(
@@ -129,6 +132,8 @@ export const CustomerCartScreen = ({ navigation }) => {
         meal_timing: mealTiming,
         delivery_type: deliveryType,
         delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
+        delivery_latitude: deliveryType === 'delivery' ? deliveryCoords?.latitude ?? null : null,
+        delivery_longitude: deliveryType === 'delivery' ? deliveryCoords?.longitude ?? null : null,
         notes: notes.trim(),
       });
 
@@ -319,16 +324,43 @@ export const CustomerCartScreen = ({ navigation }) => {
             )}
 
             {deliveryAvailable && deliveryType === 'delivery' && (
-              <Input
-                label="Delivery Address"
-                placeholder="Flat No, Building, Area"
-                value={deliveryAddress}
-                onChangeText={(text) => {
-                  setAddressEdited(true);
-                  setDeliveryAddress(text);
-                }}
-                style={{ marginTop: 14 }}
-              />
+              <>
+                <Input
+                  label="Delivery Address"
+                  placeholder="Flat No, Building, Area"
+                  value={deliveryAddress}
+                  onChangeText={(text) => {
+                    setAddressEdited(true);
+                    setDeliveryAddress(text);
+                  }}
+                  style={{ marginTop: 14 }}
+                />
+
+                <TouchableOpacity
+                  onPress={() => setMapModalVisible(true)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    marginTop: -6,
+                    marginBottom: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: SIZES.radiusSm,
+                    borderWidth: 1,
+                    borderColor: COLORS.primary,
+                    backgroundColor: '#FFF8F2',
+                  }}
+                >
+                  <MapPin size={16} color={COLORS.primary} />
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary }}>
+                    {deliveryCoords
+                      ? 'Change Location on Map (GPS Pinned)'
+                      : 'Select Current / Delivery Address from Map'}
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <Input
@@ -367,6 +399,19 @@ export const CustomerCartScreen = ({ navigation }) => {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <MapPickerModal
+        visible={mapModalVisible}
+        initialLatitude={deliveryCoords?.latitude}
+        initialLongitude={deliveryCoords?.longitude}
+        onClose={() => setMapModalVisible(false)}
+        onConfirm={({ latitude, longitude, address }) => {
+          setDeliveryCoords({ latitude, longitude });
+          setAddressEdited(true);
+          setDeliveryAddress(address);
+          setMapModalVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };

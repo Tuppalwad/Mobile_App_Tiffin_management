@@ -23,6 +23,7 @@ import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
+import { VegIndicator } from '../../components/VegIndicator';
 import { Pencil, Trash2, UtensilsCrossed, X, Camera } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
@@ -52,6 +53,7 @@ export const OwnerMenuScreen = () => {
   const [mealType, setMealType] = useState('lunch');
   const [servingSize, setServingSize] = useState('1 Person');
   const [imageUrl, setImageUrl] = useState('');
+  const [isVeg, setIsVeg] = useState(true);
 
   const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -64,6 +66,7 @@ export const OwnerMenuScreen = () => {
     setMealType('lunch');
     setServingSize('1 Person');
     setImageUrl('');
+    setIsVeg(true);
   };
 
   const openCreateModal = () => {
@@ -80,6 +83,7 @@ export const OwnerMenuScreen = () => {
     setMealType(item.meal_type || 'lunch');
     setServingSize(item.serving_size || '1 Person');
     setImageUrl(item.image_url || '');
+    setIsVeg(item.is_veg !== false);
     setModalVisible(true);
   };
 
@@ -171,6 +175,7 @@ export const OwnerMenuScreen = () => {
         meal_type: mealType,
         serving_size: servingSize,
         image_url: imageUrl || null,
+        is_veg: isVeg,
       };
 
       if (editingItem) {
@@ -222,7 +227,10 @@ export const OwnerMenuScreen = () => {
             <Image source={{ uri: item.image_url }} style={styles.menuThumb} resizeMode="cover" />
           ) : null}
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={styles.itemName}>{item.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <VegIndicator isVeg={item.is_veg} showLabel={false} />
+              <Text style={styles.itemName}>{item.name}</Text>
+            </View>
             <Text style={styles.categoryBadge}>{item.category} • {item.meal_type?.toUpperCase()}</Text>
           </View>
           <Text style={styles.itemPrice}>₹{item.price}</Text>
@@ -376,6 +384,33 @@ export const OwnerMenuScreen = () => {
                   <Text style={styles.uploadSub}>1 image allowed • Max size 5MB</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Dietary Type Toggle (Veg / Non-Veg) */}
+              <Text style={styles.label}>Dietary Type</Text>
+              <View style={[styles.timingRow, { marginBottom: 16 }]}>
+                <TouchableOpacity
+                  onPress={() => setIsVeg(true)}
+                  style={[
+                    styles.timingBtn,
+                    { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+                    isVeg && { backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#16A34A' },
+                  ]}
+                >
+                  <VegIndicator isVeg={true} showLabel={false} />
+                  <Text style={[styles.timingText, isVeg && { color: '#15803D' }]}>VEG</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setIsVeg(false)}
+                  style={[
+                    styles.timingBtn,
+                    { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+                    !isVeg && { backgroundColor: '#FEE2E2', borderWidth: 1, borderColor: '#DC2626' },
+                  ]}
+                >
+                  <VegIndicator isVeg={false} showLabel={false} />
+                  <Text style={[styles.timingText, !isVeg && { color: '#B91C1C' }]}>NON-VEG</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Category Picker */}
               <Text style={styles.label}>Category</Text>

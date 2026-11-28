@@ -23,11 +23,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Card } from '../../components/Card';
-import { X, Check } from 'lucide-react-native';
+import { MapPickerModal } from '../../components/MapPickerModal';
+import { X, Check, MapPin } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 import { logoutThunk, selectRoleThunk, updateUser } from '../../store/slices/authSlice';
 import { formatTime12h, TIME_SLOTS } from '../../utils/timeUtils';
+import {
+  requestLocationPermission,
+  getCurrentPosition,
+  reverseGeocode,
+} from '../../utils/locationUtils';
 
 export const OwnerProfileScreen = () => {
   const dispatch = useDispatch();
@@ -43,6 +49,9 @@ export const OwnerProfileScreen = () => {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
   const [serviceRadiusKm, setServiceRadiusKm] = useState('5');
   const [maxSkipDays, setMaxSkipDays] = useState('7');
   const [deliveryAvailable, setDeliveryAvailable] = useState(true);
@@ -66,12 +75,29 @@ export const OwnerProfileScreen = () => {
           setCity(p.city || '');
           setState(p.state || '');
           setPincode(p.pincode || '');
+          setLatitude(p.latitude !== null && p.latitude !== undefined ? parseFloat(p.latitude) : null);
+          setLongitude(p.longitude !== null && p.longitude !== undefined ? parseFloat(p.longitude) : null);
           setServiceRadiusKm(p.service_radius_km ? p.service_radius_km.toString() : '5');
           setMaxSkipDays(p.max_skip_days ? p.max_skip_days.toString() : '7');
           setDeliveryAvailable(p.delivery_available !== false);
           setPickupAvailable(p.pickup_available !== false);
           setOpeningTime(p.opening_time || '');
           setClosingTime(p.closing_time || '');
+
+          if (p.latitude === null || p.latitude === undefined || p.longitude === null || p.longitude === undefined) {
+            const granted = await requestLocationPermission();
+            if (granted) {
+              const pos = await getCurrentPosition().catch(() => null);
+              if (pos) {
+                setLatitude(pos.latitude);
+                setLongitude(pos.longitude);
+                if (!p.address) {
+                  const addr = await reverseGeocode(pos.latitude, pos.longitude);
+                  setAddress(addr);
+                }
+              }
+            }
+          }
         }
       } catch (err) {
         console.warn('Profile fetch error:', err);
@@ -108,6 +134,8 @@ export const OwnerProfileScreen = () => {
         city: city.trim(),
         state: state.trim(),
         pincode: trimmedPincode,
+        latitude,
+        longitude,
         service_radius_km: parseFloat(serviceRadiusKm) || 5,
         max_skip_days: Math.min(365, Math.max(1, parseInt(maxSkipDays, 10) || 7)),
         delivery_available: deliveryAvailable,
@@ -251,6 +279,46 @@ export const OwnerProfileScreen = () => {
               />
             </View>
 
+            <Text style={styles.labelText}>Kitchen GPS Location (Used for Nearby Customer Search)</Text>
+            <TouchableOpacity
+              onPress={() => setMapModalVisible(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 11,
+                borderRadius: SIZES.radiusSm,
+                borderWidth: 1,
+                borderColor: latitude && longitude ? COLORS.secondary : COLORS.primary,
+                backgroundColor: latitude && longitude ? '#F0FDF4' : '#FFF8F2',
+                marginBottom: 14,
+              }}
+            >
+              <MapPin
+                size={18}
+                color={latitude && longitude ? COLORS.secondary : COLORS.primary}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '700',
+                    color: latitude && longitude ? COLORS.secondary : COLORS.primary,
+                  }}
+                >
+                  {latitude !== null && longitude !== null
+                    ? 'Kitchen Location Pinned (Tap to Update)'
+                    : 'Set Kitchen Location on Map / Use Current GPS'}
+                </Text>
+                {latitude !== null && longitude !== null && (
+                  <Text style={{ fontSize: 11, color: COLORS.textSecondary, marginTop: 2 }}>
+                    Lat: {Number(latitude).toFixed(5)}, Lng: {Number(longitude).toFixed(5)}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+
             <Input
               label="Service Delivery Radius (km)"
               placeholder="5.0"
@@ -388,6 +456,21 @@ export const OwnerProfileScreen = () => {
           </View>
         </View>
       </Modal>
+
+      <MapPickerModal
+        visible={mapModalVisible}
+        initialLatitude={latitude}
+        initialLongitude={longitude}
+        onClose={() => setMapModalVisible(false)}
+        onConfirm={({ latitude: lat, longitude: lng, address: pickedAddress }) => {
+          setLatitude(lat);
+          setLongitude(lng);
+          if (!address.trim() && pickedAddress) {
+            setAddress(pickedAddress);
+          }
+          setMapModalVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };

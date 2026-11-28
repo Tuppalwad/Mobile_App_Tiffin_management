@@ -143,24 +143,42 @@ export const CustomerOrdersScreen = () => {
 
         {/* Food Items */}
         <View style={styles.itemsBox}>
-          {item.items?.map((fi, idx) => (
+          {(item.orderItems || item.items || []).map((fi, idx) => (
             <View key={idx} style={styles.itemRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
                 {fi.menuItem?.image_url ? (
                   <Image
                     source={{ uri: fi.menuItem.image_url }}
-                    style={{ width: 32, height: 32, borderRadius: 6, marginRight: 8, backgroundColor: COLORS.chipBg }}
+                    style={{ width: 36, height: 36, borderRadius: 6, marginRight: 8, backgroundColor: COLORS.chipBg }}
                     resizeMode="cover"
                   />
                 ) : null}
-                <Text style={styles.itemText}>
-                  {fi.quantity}x {fi.item_name}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemText}>
+                    {fi.quantity}x {fi.item_name}
+                  </Text>
+                  {fi.unit_price ? (
+                    <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>
+                      ₹{fi.unit_price} each
+                    </Text>
+                  ) : null}
+                </View>
               </View>
               <Text style={styles.itemPrice}>₹{fi.total_price}</Text>
             </View>
           ))}
         </View>
+
+        {item.delivery_type === 'delivery' && item.delivery_address ? (
+          <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 8 }}>
+            Delivery to: {item.delivery_address}
+          </Text>
+        ) : null}
+        {item.notes ? (
+          <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
+            Note: {item.notes}
+          </Text>
+        ) : null}
 
         {/* Order Details & Total */}
         <View style={styles.footerRow}>

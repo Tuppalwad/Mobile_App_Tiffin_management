@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -27,9 +28,15 @@ import {
   Search,
   User,
   Phone,
+  SlidersHorizontal,
+  X,
+  Crosshair,
 } from 'lucide-react-native';
 import { Card, Badge } from '../../components/Card';
 import { Input } from '../../components/Input';
+import { VegIndicator } from '../../components/VegIndicator';
+import { CustomAlert } from '../../components/CustomAlert';
+import { requestLocationPermission, getCurrentPosition } from '../../utils/locationUtils';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { notificationApi } from '../../api/notificationApi';
@@ -47,10 +54,43 @@ export const CustomerHomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Location & Filters State
+  const [userCoords, setUserCoords] = useState(null);
+  const [dietaryFilter, setDietaryFilter] = useState('all'); // 'all' | 'veg' | 'non_veg'
+  const [maxDistanceKm, setMaxDistanceKm] = useState(null); // null | 2 | 5 | 10 | 20
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [draftDietary, setDraftDietary] = useState('all');
+  const [draftDistance, setDraftDistance] = useState(null);
+  const [locating, setLocating] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const initLocation = async () => {
+      try {
+        const granted = await requestLocationPermission();
+        if (!granted || !mounted) return;
+        const pos = await getCurrentPosition();
+        if (mounted) setUserCoords(pos);
+      } catch {
+        // Location is optional until user filters by distance
+      }
+    };
+    initLocation();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       const [provRes, subsRes, notifRes, chatRes] = await Promise.all([
-        customerApi.getProviders({ search: search.trim() || undefined }),
+        customerApi.getProviders({
+          search: search.trim() || undefined,
+          dietary: dietaryFilter !== 'all' ? dietaryFilter : undefined,
+          lat: userCoords?.latitude,
+          lng: userCoords?.longitude,
+          max_distance_km: maxDistanceKm || undefined,
+        }),
         customerApi.getSubscriptions({ status: 'active' }),
         notificationApi.getNotifications({ pageSize: 1 }).catch(() => null),
         chatApi.getConversations().catch(() => ({ data: [] })),
@@ -75,7 +115,7 @@ export const CustomerHomeScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [search]);
+  }, [search, dietaryFilter, maxDistanceKm, userCoords]);
 
   // Always refresh latest data when screen is focused
   useFocusEffect(
@@ -136,7 +176,12 @@ export const CustomerHomeScreen = ({ navigation }) => {
               <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
                 <MapPin size={12} color={COLORS.textSecondary} />
                 <Text style={styles.providerArea}>
-                  {item.city || 'Nearby'} {item.service_radius_km ? `• Within ${item.service_radius_km} km` : ''}
+                  {item.city || 'Nearby'}
+                  {item.distance_km !== null && item.distance_km !== undefined
+                    ? ` • ${item.distance_km} km away`
+                    : item.service_radius_km
+                    ? ` • Within ${item.service_radius_km} km`
+                    : ''}
                 </Text>
                 {kitchenHours ? (
                   <>
@@ -241,14 +286,41 @@ export const CustomerHomeScreen = ({ navigation }) => {
               </View>
             )}
 
-            {/* Search Bar */}
-            <Input
-              placeholder="Search tiffin providers"
-              prefix={<Search size={18} color={COLORS.textMuted} />}
-              value={search}
-              onChangeText={setSearch}
-              style={{ marginTop: 12, marginBottom: 8 }}
-            />
+            {/* Search Bar & Filter Button */}
+            <View style={styles.searchFilterRow}>
+              <View style={{ flex: 1 }}>
+                <Input
+                  placeholder="Search tiffin providers"
+                  prefix={<Search size={18} color={COLORS.textMuted} />}
+                  value={search}
+                  onChangeText={setSearch}
+                  style={{ marginBottom: 0 }}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.filterBtn,
+                  (dietaryFilter !== 'all' || maxDistanceKm !== null) && styles.filterBtnActive,
+                ]}
+                onPress={() => {
+                  setDraftDietary(dietaryFilter);
+                  setDraftDistance(maxDistanceKm);
+                  setFilterModalVisible(true);
+                }}
+              >
+                <SlidersHorizontal
+                  size={20}
+                  color={
+                    dietaryFilter !== 'all' || maxDistanceKm !== null
+                      ? '#FFF'
+                      : COLORS.primary
+                  }
+                />
+                {(dietaryFilter !== 'all' || maxDistanceKm !== null) && (
+                  <View style={styles.filterActiveDot} />
+                )}
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.sectionTitle}>Local Homemade Tiffin Providers</Text>
           </View>
@@ -265,6 +337,171 @@ export const CustomerHomeScreen = ({ navigation }) => {
           )
         }
       />
+
+      {/* Bottom Sheet Filter Modal */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.filterModalOverlay}>
+          <View style={styles.filterModalSheet}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filter Kitchens</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <X size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.filterSectionLabel}>Dietary Preference</Text>
+            <View style={styles.filterChipRow}>
+              {[
+                { key: 'all', label: 'Both (All)' },
+                { key: 'veg', label: 'Veg Only' },
+                { key: 'non_veg', label: 'Non-Veg Only' },
+              ].map((opt) => {
+                const active = draftDietary === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.filterChip, active && styles.filterChipSelected]}
+                    onPress={() => setDraftDietary(opt.key)}
+                  >
+                    {opt.key === 'veg' && <VegIndicator isVeg={true} showLabel={false} />}
+                    {opt.key === 'non_veg' && <VegIndicator isVeg={false} showLabel={false} />}
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        active && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.distanceHeaderRow}>
+              <Text style={[styles.filterSectionLabel, { marginTop: 0, marginBottom: 0 }]}>
+                Distance Range
+              </Text>
+              <TouchableOpacity
+                style={styles.detectLocBtn}
+                disabled={locating}
+                onPress={async () => {
+                  setLocating(true);
+                  try {
+                    const granted = await requestLocationPermission();
+                    if (!granted) {
+                      CustomAlert.alert(
+                        'Permission Required',
+                        'Please enable location permission to filter by nearest distance.'
+                      );
+                    } else {
+                      const pos = await getCurrentPosition();
+                      setUserCoords(pos);
+                    }
+                  } catch (err) {
+                    CustomAlert.alert('Location Error', err.message || 'Unable to get location');
+                  } finally {
+                    setLocating(false);
+                  }
+                }}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <Crosshair size={14} color={COLORS.primary} />
+                )}
+                <Text style={styles.detectLocText}>
+                  {userCoords ? 'Location Ready' : 'Detect Location'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterChipRow}>
+              {[
+                { key: null, label: 'Any Distance' },
+                { key: 2, label: 'Within 2 km' },
+                { key: 5, label: 'Within 5 km' },
+                { key: 10, label: 'Within 10 km' },
+                { key: 20, label: 'Within 20 km' },
+              ].map((opt) => {
+                const active = draftDistance === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={String(opt.key)}
+                    style={[styles.filterChip, active && styles.filterChipSelected]}
+                    onPress={async () => {
+                      if (opt.key !== null && !userCoords) {
+                        setLocating(true);
+                        try {
+                          const granted = await requestLocationPermission();
+                          if (!granted) {
+                            CustomAlert.alert(
+                              'Location Permission',
+                              'Location permission is needed to filter providers by distance.'
+                            );
+                            setLocating(false);
+                            return;
+                          }
+                          const pos = await getCurrentPosition();
+                          setUserCoords(pos);
+                        } catch (err) {
+                          CustomAlert.alert(
+                            'Location Error',
+                            err.message || 'Could not detect current location.'
+                          );
+                          setLocating(false);
+                          return;
+                        }
+                        setLocating(false);
+                      }
+                      setDraftDistance(opt.key);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        active && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.filterActionsRow}>
+              <TouchableOpacity
+                style={styles.resetFilterBtn}
+                onPress={() => {
+                  setDraftDietary('all');
+                  setDraftDistance(null);
+                  setDietaryFilter('all');
+                  setMaxDistanceKm(null);
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.resetFilterText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyFilterBtn}
+                onPress={() => {
+                  setDietaryFilter(draftDietary);
+                  setMaxDistanceKm(draftDistance);
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.applyFilterText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -455,6 +692,146 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...FONTS.subtitle,
     marginTop: 4,
+  },
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  filterBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  filterBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FDE047',
+  },
+  filterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  filterModalSheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: SIZES.radiusLg,
+    borderTopRightRadius: SIZES.radiusLg,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  filterModalTitle: {
+    ...FONTS.h3,
+    color: COLORS.text,
+  },
+  filterSectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  distanceHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  detectLocBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: SIZES.radiusFull,
+    backgroundColor: '#FFF8F2',
+  },
+  detectLocText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: SIZES.radiusFull,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  filterChipSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#FFF3E0',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  filterChipTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  filterActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  resetFilterBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  resetFilterText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  applyFilterBtn: {
+    flex: 2,
+    paddingVertical: 13,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  applyFilterText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
 

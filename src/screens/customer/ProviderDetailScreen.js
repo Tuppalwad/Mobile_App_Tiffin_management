@@ -33,6 +33,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { VegIndicator } from '../../components/VegIndicator';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { customerApi } from '../../api/customerApi';
 import { chatApi } from '../../api/chatApi';
@@ -264,7 +265,10 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                       />
                     ) : null}
                     <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text style={styles.itemName}>{item.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <VegIndicator isVeg={item.is_veg} showLabel={false} />
+                        <Text style={styles.itemName}>{item.name}</Text>
+                      </View>
                       <Text style={styles.itemCategory}>{item.category} • {item.serving_size || '1 person'}</Text>
                     </View>
                     <Text style={styles.itemPrice}>₹{item.price}</Text>
