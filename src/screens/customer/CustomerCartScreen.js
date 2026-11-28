@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
 import { ShoppingCart, Truck, Store, Sunrise, Sun, Moon } from 'lucide-react-native';
@@ -185,6 +186,13 @@ export const CustomerCartScreen = ({ navigation }) => {
             <Text style={styles.cardHeading}>Items in Cart</Text>
             {cart.items.map((item) => (
               <View key={item.menuItemId} style={styles.cartItemRow}>
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={{ width: 46, height: 46, borderRadius: 8, marginRight: 10, backgroundColor: COLORS.chipBg }}
+                    resizeMode="cover"
+                  />
+                ) : null}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemName}>{item.name}</Text>
                   <Text style={styles.itemUnitPrice}>₹{item.price} each</Text>

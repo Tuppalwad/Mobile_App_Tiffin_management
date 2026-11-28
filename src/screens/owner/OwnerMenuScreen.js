@@ -15,13 +15,15 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { CustomAlert } from "../../components/CustomAlert";
 import { Card, Badge } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { KeyboardModalView } from '../../components/KeyboardModalView';
-import { Pencil, Trash2, UtensilsCrossed, X } from 'lucide-react-native';
+import { Pencil, Trash2, UtensilsCrossed, X, Camera } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { ownerApi } from '../../api/ownerApi';
 
@@ -49,6 +51,9 @@ export const OwnerMenuScreen = () => {
   const [price, setPrice] = useState('');
   const [mealType, setMealType] = useState('lunch');
   const [servingSize, setServingSize] = useState('1 Person');
+  const [imageUrl, setImageUrl] = useState('');
+
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
   const resetForm = () => {
     setEditingItem(null);
@@ -58,6 +63,7 @@ export const OwnerMenuScreen = () => {
     setPrice('');
     setMealType('lunch');
     setServingSize('1 Person');
+    setImageUrl('');
   };
 
   const openCreateModal = () => {
@@ -73,7 +79,53 @@ export const OwnerMenuScreen = () => {
     setPrice(item.price !== undefined && item.price !== null ? String(item.price) : '');
     setMealType(item.meal_type || 'lunch');
     setServingSize(item.serving_size || '1 Person');
+    setImageUrl(item.image_url || '');
     setModalVisible(true);
+  };
+
+  const handlePickImage = () => {
+    CustomAlert.alert('Item Photo', 'Choose an image source (Max 5MB)', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Camera', onPress: () => openImagePicker(launchCamera) },
+      { text: 'Photo Gallery', onPress: () => openImagePicker(launchImageLibrary) },
+    ]);
+  };
+
+  const openImagePicker = async (pickerFn) => {
+    try {
+      const result = await pickerFn({
+        mediaType: 'photo',
+        includeBase64: true,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.75,
+        selectionLimit: 1,
+      });
+
+      if (result.didCancel || !result.assets || result.assets.length === 0) return;
+      const asset = result.assets[0];
+
+      if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
+        CustomAlert.alert('Image Too Large', 'Menu item image must be 5MB or smaller.');
+        return;
+      }
+
+      if (!asset.base64) {
+        CustomAlert.alert('Image Error', 'Could not read image data.');
+        return;
+      }
+
+      const estimatedBytes = Math.ceil((asset.base64.length * 3) / 4);
+      if (estimatedBytes > MAX_IMAGE_BYTES) {
+        CustomAlert.alert('Image Too Large', 'Menu item image must be 5MB or smaller.');
+        return;
+      }
+
+      const mime = asset.type || 'image/jpeg';
+      setImageUrl(`data:${mime};base64,${asset.base64}`);
+    } catch (err) {
+      CustomAlert.alert('Error', err.message || 'Failed to pick image');
+    }
   };
 
   const fetchMenu = useCallback(async () => {
@@ -118,6 +170,7 @@ export const OwnerMenuScreen = () => {
         price: parsedPrice,
         meal_type: mealType,
         serving_size: servingSize,
+        image_url: imageUrl || null,
       };
 
       if (editingItem) {
@@ -165,6 +218,9 @@ export const OwnerMenuScreen = () => {
     return (
       <Card style={styles.itemCard}>
         <View style={styles.cardHeader}>
+          {item.image_url ? (
+            <Image source={{ uri: item.image_url }} style={styles.menuThumb} resizeMode="cover" />
+          ) : null}
           <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.itemName}>{item.name}</Text>
             <Text style={styles.categoryBadge}>{item.category} • {item.meal_type?.toUpperCase()}</Text>
@@ -298,6 +354,28 @@ export const OwnerMenuScreen = () => {
                 onChangeText={setPrice}
                 keyboardType="numeric"
               />
+
+              {/* Single Item Image Upload (Max 5MB) */}
+              <Text style={styles.label}>Item Photo (Optional, Max 5MB)</Text>
+              {imageUrl ? (
+                <View style={styles.imagePreviewBox}>
+                  <Image source={{ uri: imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+                  <View style={styles.imageActionsRow}>
+                    <TouchableOpacity style={styles.changeImgBtn} onPress={handlePickImage}>
+                      <Text style={styles.changeImgText}>Change Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.removeImgBtn} onPress={() => setImageUrl('')}>
+                      <Text style={styles.removeImgText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage}>
+                  <Camera size={22} color={COLORS.primary} />
+                  <Text style={styles.uploadTitle}>Upload Item Photo</Text>
+                  <Text style={styles.uploadSub}>1 image allowed • Max size 5MB</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Category Picker */}
               <Text style={styles.label}>Category</Text>
@@ -569,6 +647,76 @@ const styles = StyleSheet.create({
   },
   activeTimingText: {
     color: '#FFF',
+  },
+  menuThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: SIZES.radiusSm,
+    marginRight: 12,
+    backgroundColor: COLORS.chipBg,
+  },
+  uploadBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: COLORS.primary,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: '#FFF8F2',
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 4,
+  },
+  uploadTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginTop: 2,
+  },
+  uploadSub: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  imagePreviewBox: {
+    marginBottom: 16,
+    borderRadius: SIZES.radiusMd,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 160,
+    backgroundColor: COLORS.chipBg,
+  },
+  imageActionsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  changeImgBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
+  changeImgText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  removeImgBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+  },
+  removeImgText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.danger,
   },
 });
 

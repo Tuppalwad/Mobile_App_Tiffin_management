@@ -40,6 +40,7 @@ const cartSlice = createSlice({
           price: parseFloat(item.price),
           quantity: 1,
           category: item.category,
+          image_url: item.image_url || null,
         });
       }
     },

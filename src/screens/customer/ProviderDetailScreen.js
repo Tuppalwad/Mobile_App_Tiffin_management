@@ -12,6 +12,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
 import {
@@ -249,6 +250,19 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
               return (
                 <Card key={item.id} style={styles.menuCard}>
                   <View style={styles.itemHeader}>
+                    {item.image_url ? (
+                      <Image
+                        source={{ uri: item.image_url }}
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: SIZES.radiusSm,
+                          marginRight: 12,
+                          backgroundColor: COLORS.chipBg,
+                        }}
+                        resizeMode="cover"
+                      />
+                    ) : null}
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.itemName}>{item.name}</Text>
                       <Text style={styles.itemCategory}>{item.category} • {item.serving_size || '1 person'}</Text>

@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
 import { Check, Package } from 'lucide-react-native';
@@ -144,9 +145,18 @@ export const CustomerOrdersScreen = () => {
         <View style={styles.itemsBox}>
           {item.items?.map((fi, idx) => (
             <View key={idx} style={styles.itemRow}>
-              <Text style={styles.itemText}>
-                {fi.quantity}x {fi.item_name}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                {fi.menuItem?.image_url ? (
+                  <Image
+                    source={{ uri: fi.menuItem.image_url }}
+                    style={{ width: 32, height: 32, borderRadius: 6, marginRight: 8, backgroundColor: COLORS.chipBg }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <Text style={styles.itemText}>
+                  {fi.quantity}x {fi.item_name}
+                </Text>
+              </View>
               <Text style={styles.itemPrice}>₹{fi.total_price}</Text>
             </View>
           ))}
