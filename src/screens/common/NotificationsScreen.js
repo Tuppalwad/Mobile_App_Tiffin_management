@@ -68,14 +68,15 @@ export const NotificationsScreen = ({ navigation }) => {
   const handleNotificationPress = async (item) => {
     const notifId = item.id;
 
-    // Instantly remove from mobile state so it disappears
-    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
-
-    try {
-      // Delete permanently from the database
-      await notificationApi.deleteNotification(notifId);
-    } catch (err) {
-      console.warn('Could not delete notification from DB:', err.message);
+    if (!item.is_read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notifId ? { ...n, is_read: true } : n))
+      );
+      try {
+        await notificationApi.markAsRead(notifId);
+      } catch (err) {
+        console.warn('Could not mark notification as read:', err.message);
+      }
     }
 
     // Optional navigation based on reference
@@ -159,6 +160,15 @@ export const NotificationsScreen = ({ navigation }) => {
     }
   };
 
+  const handleDeleteNotification = async (notifId) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
+    try {
+      await notificationApi.deleteNotification(notifId);
+    } catch (err) {
+      console.warn('Could not delete notification from DB:', err.message);
+    }
+  };
+
   const renderNotification = ({ item }) => {
     return (
       <TouchableOpacity
@@ -182,12 +192,12 @@ export const NotificationsScreen = ({ navigation }) => {
             {item.message}
           </Text>
 
-          <Text style={styles.dismissHint}>Tap to dismiss and view details</Text>
+          <Text style={styles.dismissHint}>Tap to view details</Text>
         </View>
 
         <TouchableOpacity
           style={styles.deleteBtn}
-          onPress={() => handleNotificationPress(item)}
+          onPress={() => handleDeleteNotification(item.id)}
         >
           <X size={16} color={COLORS.textSecondary} />
         </TouchableOpacity>

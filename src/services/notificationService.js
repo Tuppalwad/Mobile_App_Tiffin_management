@@ -5,6 +5,7 @@
 
 import { Platform, PermissionsAndroid } from 'react-native';
 import { CustomAlert } from "../components/CustomAlert";
+import { ChatToast } from "../components/ChatToast";
 import { getMessaging } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../api/authApi';
@@ -144,13 +145,24 @@ class NotificationService {
             type: data.type,
           });
 
-          // Skip alert popup if user is currently inside that exact chat conversation
-          const isViewingSameChat =
-            data.type === 'chat' &&
-            Number(data.conversationId) &&
-            chatSocketService.getActiveConversation() === Number(data.conversationId);
+          const isChatNotification =
+            data.type === 'chat' || data.action === 'NEW_CHAT_MESSAGE';
 
-          if (!isViewingSameChat) {
+          if (isChatNotification) {
+            // Skip toast if user is currently inside that exact chat conversation
+            const isViewingSameChat =
+              Number(data.conversationId) &&
+              chatSocketService.getActiveConversation() === Number(data.conversationId);
+
+            if (!isViewingSameChat) {
+              ChatToast.show({
+                title,
+                message: body,
+                conversationId: data.conversationId ? Number(data.conversationId) : null,
+                senderName: data.senderName || title,
+              });
+            }
+          } else {
             CustomAlert.alert(title, body, [{ text: 'OK' }]);
           }
         });

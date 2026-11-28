@@ -45,6 +45,7 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
 
   const [activeTab, setActiveTab] = useState('menu'); // 'menu' | 'plans'
   const [data, setData] = useState(null);
+  const [activeSubPlanIds, setActiveSubPlanIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(false);
 
@@ -52,8 +53,17 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
     useCallback(() => {
       const fetchDetails = async () => {
         try {
-          const response = await customerApi.getProviderDetails(providerId);
+          const [response, subsRes] = await Promise.all([
+            customerApi.getProviderDetails(providerId),
+            customerApi.getSubscriptions({ status: 'active' }).catch(() => ({ data: [] })),
+          ]);
           setData(response.data);
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const activeIds = (subsRes.data || [])
+            .filter((s) => s.status === 'active' && (!s.end_date || s.end_date >= todayStr))
+            .map((s) => s.plan_id);
+          setActiveSubPlanIds(activeIds);
         } catch (err) {
           CustomAlert.alert('Error', err.message || 'Could not load provider details.');
         } finally {
@@ -66,9 +76,17 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
   );
 
   const handleSubscribe = async (plan) => {
+    if (activeSubPlanIds.includes(plan.id)) {
+      CustomAlert.alert(
+        'Already Subscribed',
+        'You already have an active subscription for this plan.'
+      );
+      return;
+    }
+
     CustomAlert.alert(
       'Confirm Subscription',
-      `Subscribe to "${plan.name}" for ₹${plan.price} (30 Days)?`,
+      `Subscribe to "${plan.name}" for ₹${plan.price} (${plan.duration_days || 30} Days)?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -76,13 +94,15 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
           onPress: async () => {
             setSubscribing(true);
             try {
-              const today = new Date().toISOString().split('T')[0];
+              const now = new Date();
+              const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
               await customerApi.createSubscription({
                 owner_id: providerId,
                 plan_id: plan.id,
                 start_date: today,
                 notes: 'Subscribed via app',
               });
+              setActiveSubPlanIds((prev) => [...prev, plan.id]);
               setSubscribing(false);
               CustomAlert.alert('Subscribed!', 'Your monthly tiffin plan is now active.', [
                 {
@@ -321,9 +341,10 @@ export const ProviderDetailScreen = ({ route, navigation }) => {
                 )}
 
                 <Button
-                  title="Subscribe Now"
+                  title={activeSubPlanIds.includes(plan.id) ? 'Already Subscribed (Active)' : 'Subscribe Now'}
                   onPress={() => handleSubscribe(plan)}
                   loading={subscribing}
+                  disabled={activeSubPlanIds.includes(plan.id)}
                   style={{ marginTop: 12 }}
                 />
               </Card>

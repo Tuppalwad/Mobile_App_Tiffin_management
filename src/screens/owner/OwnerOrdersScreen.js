@@ -3,7 +3,7 @@
  * Allows viewing all daily orders, filtering by status, and updating status
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  PanResponder,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
 import {
@@ -62,6 +63,40 @@ export const OwnerOrdersScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const filterListRef = useRef(null);
+  const selectedFilterRef = useRef(selectedFilter);
+  useEffect(() => {
+    selectedFilterRef.current = selectedFilter;
+    const idx = STATUS_FILTERS.findIndex((f) => f.value === selectedFilter);
+    if (idx >= 0 && filterListRef.current) {
+      filterListRef.current.scrollToIndex({
+        index: idx,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
+  }, [selectedFilter]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 20 &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5,
+      onPanResponderRelease: (_, gestureState) => {
+        const currentIndex = STATUS_FILTERS.findIndex(
+          (f) => f.value === selectedFilterRef.current
+        );
+        if (currentIndex === -1) return;
+
+        if (gestureState.dx < -50 && currentIndex < STATUS_FILTERS.length - 1) {
+          setSelectedFilter(STATUS_FILTERS[currentIndex + 1].value);
+        } else if (gestureState.dx > 50 && currentIndex > 0) {
+          setSelectedFilter(STATUS_FILTERS[currentIndex - 1].value);
+        }
+      },
+    })
+  ).current;
 
   // Cancellation Modal State
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -184,7 +219,7 @@ export const OwnerOrdersScreen = () => {
               <Text style={[styles.customerAddress, { flex: 1 }]}>{customerDeliveryAddress}</Text>
             </View>
           ) : null}
-          {item.order_status === 'delivered' && item.customer_id && (
+          {item.customer_id && (
             <TouchableOpacity
               style={[styles.chatCustomerBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={async () => {
@@ -310,10 +345,12 @@ export const OwnerOrdersScreen = () => {
       {/* Filter Horizontal Scroll */}
       <View style={styles.filterContainer}>
         <FlatList
+          ref={filterListRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           data={STATUS_FILTERS}
           keyExtractor={(item) => item.value}
+          onScrollToIndexFailed={() => {}}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => setSelectedFilter(item.value)}
@@ -335,28 +372,30 @@ export const OwnerOrdersScreen = () => {
         />
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderOrderItem}
-          contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Inbox size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
-              <Text style={styles.emptyTitle}>No Orders Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {selectedFilter ? 'No orders match this status filter.' : 'You have no customer orders right now.'}
-              </Text>
-            </View>
-          }
-        />
-      )}
+      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={orders}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderOrderItem}
+            contentContainerStyle={styles.listContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Inbox size={48} color={COLORS.textMuted} style={{ marginBottom: 12 }} />
+                <Text style={styles.emptyTitle}>No Orders Found</Text>
+                <Text style={styles.emptySubtitle}>
+                  {selectedFilter ? 'No orders match this status filter.' : 'You have no customer orders right now.'}
+                </Text>
+              </View>
+            }
+          />
+        )}
+      </View>
       {/* Cancellation Modal with Optional Reason */}
       <Modal
         visible={cancelModalVisible}

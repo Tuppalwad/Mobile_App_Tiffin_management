@@ -33,6 +33,7 @@ export const ownerApi = {
 
   // Customers & Subscriptions
   getSubscriptions: (params) => apiClient.get('/owner/subscriptions', { params }),
+  updateSubscriptionCancelStatus: (id, status) => apiClient.patch(`/owner/subscriptions/${id}/cancel-status`, { status }),
   getCustomers: () => apiClient.get('/owner/customers'),
   getSkipRequests: (params) => apiClient.get('/owner/skips', { params }),
   updateSkipStatus: (id, data) => apiClient.patch(`/owner/skips/${id}`, data),

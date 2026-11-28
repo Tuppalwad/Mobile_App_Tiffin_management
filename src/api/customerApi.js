@@ -22,6 +22,7 @@ export const customerApi = {
   // Subscriptions
   createSubscription: (data) => apiClient.post('/customer/subscriptions', data),
   getSubscriptions: (params) => apiClient.get('/customer/subscriptions', { params }),
+  requestCancelSubscription: (id, data) => apiClient.post(`/customer/subscriptions/${id}/cancel-request`, data),
 
   // Skip Tiffin
   requestSkipTiffin: (data) => apiClient.post('/customer/skips', data),

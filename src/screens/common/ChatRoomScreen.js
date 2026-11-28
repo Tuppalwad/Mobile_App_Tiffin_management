@@ -24,6 +24,8 @@ import {
   Image,
   Modal,
   ActivityIndicator,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { CustomAlert } from "../../components/CustomAlert";
 import { useSelector } from 'react-redux';
@@ -43,6 +45,7 @@ import {
   MessageCircle,
   User,
   Crown,
+  Reply,
 } from 'lucide-react-native';
 import { COLORS, SIZES, FONTS } from '../../constants/theme';
 import { chatApi } from '../../api/chatApi';
@@ -66,6 +69,74 @@ const formatDateBanner = (isoStr) => {
   yesterday.setDate(now.getDate() - 1);
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const SwipeableMessageRow = ({ isDeleted, onSwipeReply, children }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const onSwipeReplyRef = useRef(onSwipeReply);
+  onSwipeReplyRef.current = onSwipeReply;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        !isDeleted && gs.dx > 12 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
+      onPanResponderMove: (_, gs) => {
+        const clamped = Math.min(72, Math.max(0, gs.dx * 0.75));
+        translateX.setValue(clamped);
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (!isDeleted && gs.dx * 0.75 >= 42) {
+          onSwipeReplyRef.current?.();
+        }
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          bounciness: 8,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          bounciness: 8,
+        }).start();
+      },
+    })
+  ).current;
+
+  const iconOpacity = translateX.interpolate({
+    inputRange: [0, 18, 45],
+    outputRange: [0, 0.5, 1],
+    extrapolate: 'clamp',
+  });
+
+  const iconScale = translateX.interpolate({
+    inputRange: [0, 45],
+    outputRange: [0.6, 1],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={{ position: 'relative', justifyContent: 'center' }}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.swipeReplyIconWrap,
+          {
+            opacity: iconOpacity,
+            transform: [{ scale: iconScale }],
+          },
+        ]}
+      >
+        <View style={styles.swipeReplyCircle}>
+          <Reply size={16} color={COLORS.primary} />
+        </View>
+      </Animated.View>
+      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+        {children}
+      </Animated.View>
+    </View>
+  );
 };
 
 export const ChatRoomScreen = ({ route, navigation }) => {
@@ -547,60 +618,68 @@ export const ChatRoomScreen = ({ route, navigation }) => {
     const isMine = item.senderId === user?.id;
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onLongPress={() => {
-          if (!item.isDeleted) {
-            setActionMessage(item);
-          }
+      <SwipeableMessageRow
+        isDeleted={item.isDeleted}
+        onSwipeReply={() => {
+          setEditingMessage(null);
+          setReplyTarget(item);
         }}
-        style={[styles.msgRow, isMine ? styles.msgRowMine : styles.msgRowOther]}
       >
-        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
-          {/* Sender Name in Group Chats */}
-          {isGroup && !isMine && (
-            <Text style={styles.senderNameText}>
-              {item.sender?.displayName || item.sender?.name || 'Member'}
-            </Text>
-          )}
-
-          {/* Quoted Reply Block */}
-          {item.replyTo && (
-            <View style={[styles.replyQuoteBox, isMine && styles.replyQuoteBoxMine]}>
-              <Text style={styles.replyQuoteAuthor} numberOfLines={1}>
-                {item.replyTo.senderName}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onLongPress={() => {
+            if (!item.isDeleted) {
+              setActionMessage(item);
+            }
+          }}
+          style={[styles.msgRow, isMine ? styles.msgRowMine : styles.msgRowOther]}
+        >
+          <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+            {/* Sender Name in Group Chats */}
+            {isGroup && !isMine && (
+              <Text style={styles.senderNameText}>
+                {item.sender?.displayName || item.sender?.name || 'Member'}
               </Text>
-              <Text style={styles.replyQuoteText} numberOfLines={2}>
-                {item.replyTo.content}
+            )}
+
+            {/* Quoted Reply Block */}
+            {item.replyTo && (
+              <View style={[styles.replyQuoteBox, isMine && styles.replyQuoteBoxMine]}>
+                <Text style={styles.replyQuoteAuthor} numberOfLines={1}>
+                  {item.replyTo.senderName}
+                </Text>
+                <Text style={styles.replyQuoteText} numberOfLines={2}>
+                  {item.replyTo.content}
+                </Text>
+              </View>
+            )}
+
+            {/* Media Image */}
+            {!item.isDeleted && item.messageType === 'image' && item.mediaUrl && (
+              <TouchableOpacity onPress={() => setZoomImageUrl(item.mediaUrl)}>
+                <Image source={{ uri: item.mediaUrl }} style={styles.chatImage} resizeMode="cover" />
+              </TouchableOpacity>
+            )}
+
+            {/* Text Content */}
+            {item.isDeleted ? (
+              <Text style={styles.deletedText}>🚫 This message was deleted</Text>
+            ) : item.content ? (
+              <Text style={[styles.msgText, isMine && styles.msgTextMine]}>{item.content}</Text>
+            ) : null}
+
+            {/* Time & Edited Stamp */}
+            <View style={styles.metaFooter}>
+              {item.isEdited && !item.isDeleted && (
+                <Text style={[styles.editedLabel, isMine && styles.metaMine]}>edited </Text>
+              )}
+              <Text style={[styles.timeText, isMine && styles.metaMine]}>
+                {formatMessageTime(item.createdAt)}
               </Text>
             </View>
-          )}
-
-          {/* Media Image */}
-          {!item.isDeleted && item.messageType === 'image' && item.mediaUrl && (
-            <TouchableOpacity onPress={() => setZoomImageUrl(item.mediaUrl)}>
-              <Image source={{ uri: item.mediaUrl }} style={styles.chatImage} resizeMode="cover" />
-            </TouchableOpacity>
-          )}
-
-          {/* Text Content */}
-          {item.isDeleted ? (
-            <Text style={styles.deletedText}>🚫 This message was deleted</Text>
-          ) : item.content ? (
-            <Text style={[styles.msgText, isMine && styles.msgTextMine]}>{item.content}</Text>
-          ) : null}
-
-          {/* Time & Edited Stamp */}
-          <View style={styles.metaFooter}>
-            {item.isEdited && !item.isDeleted && (
-              <Text style={[styles.editedLabel, isMine && styles.metaMine]}>edited </Text>
-            )}
-            <Text style={[styles.timeText, isMine && styles.metaMine]}>
-              {formatMessageTime(item.createdAt)}
-            </Text>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </SwipeableMessageRow>
     );
   };
 
@@ -678,11 +757,18 @@ export const ChatRoomScreen = ({ route, navigation }) => {
         {(replyTarget || editingMessage) && (
           <View style={styles.contextBanner}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.contextTitle}>
-                {editingMessage
-                  ? '✏️ Editing message'
-                  : `↩️ Replying to ${replyTarget.sender?.displayName || replyTarget.sender?.name || 'User'}`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                {editingMessage ? (
+                  <Pencil size={13} color={COLORS.primary} />
+                ) : (
+                  <Reply size={13} color={COLORS.primary} />
+                )}
+                <Text style={styles.contextTitle}>
+                  {editingMessage
+                    ? 'Editing message'
+                    : `Replying to ${replyTarget.sender?.displayName || replyTarget.sender?.name || 'User'}`}
+                </Text>
+              </View>
               <Text style={styles.contextPreview} numberOfLines={1}>
                 {editingMessage
                   ? editingMessage.content
@@ -754,14 +840,15 @@ export const ChatRoomScreen = ({ route, navigation }) => {
             <Text style={styles.sheetTitle}>Message Options</Text>
 
             <TouchableOpacity
-              style={styles.sheetItem}
+              style={[styles.sheetItem, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}
               onPress={() => {
                 setReplyTarget(actionMessage);
                 setEditingMessage(null);
                 setActionMessage(null);
               }}
             >
-              <Text style={styles.sheetItemText}>↩️ Reply to this message</Text>
+              <Reply size={18} color={COLORS.text} />
+              <Text style={styles.sheetItemText}>Reply to this message</Text>
             </TouchableOpacity>
 
             {actionMessage?.senderId === user?.id && actionMessage?.messageType === 'text' && (
@@ -1088,6 +1175,24 @@ const styles = StyleSheet.create({
   msgRow: {
     marginVertical: 3,
     flexDirection: 'row',
+  },
+  swipeReplyIconWrap: {
+    position: 'absolute',
+    left: 10,
+    zIndex: 0,
+  },
+  swipeReplyCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
   msgRowMine: {
     justifyContent: 'flex-end',

@@ -6,13 +6,15 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
-import { NavigationContainer } from '@react-navigation/native';
-import {  } from 'react-native-safe-area-context';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { store } from './src/store';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { notificationService } from './src/services/notificationService';
 import { CustomAlertProvider } from './src/components/CustomAlert';
+import { ChatToastProvider } from './src/components/ChatToast';
+
+const navigationRef = createNavigationContainerRef();
 
 function App() {
   useEffect(() => {
@@ -26,12 +28,14 @@ function App() {
     <Provider store={store}>
       <SafeAreaProvider>
         <CustomAlertProvider>
-          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-            <NavigationContainer>
-              <StatusBar barStyle="dark-content" />
-              <RootNavigator />
-            </NavigationContainer>
-          </SafeAreaView>
+          <ChatToastProvider navigationRef={navigationRef}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+              <NavigationContainer ref={navigationRef}>
+                <StatusBar barStyle="dark-content" />
+                <RootNavigator />
+              </NavigationContainer>
+            </SafeAreaView>
+          </ChatToastProvider>
         </CustomAlertProvider>
       </SafeAreaProvider>
     </Provider>

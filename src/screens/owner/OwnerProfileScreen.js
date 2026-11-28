@@ -44,6 +44,7 @@ export const OwnerProfileScreen = () => {
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
   const [serviceRadiusKm, setServiceRadiusKm] = useState('5');
+  const [maxSkipDays, setMaxSkipDays] = useState('7');
   const [deliveryAvailable, setDeliveryAvailable] = useState(true);
   const [pickupAvailable, setPickupAvailable] = useState(true);
   const [openingTime, setOpeningTime] = useState('');
@@ -66,6 +67,7 @@ export const OwnerProfileScreen = () => {
           setState(p.state || '');
           setPincode(p.pincode || '');
           setServiceRadiusKm(p.service_radius_km ? p.service_radius_km.toString() : '5');
+          setMaxSkipDays(p.max_skip_days ? p.max_skip_days.toString() : '7');
           setDeliveryAvailable(p.delivery_available !== false);
           setPickupAvailable(p.pickup_available !== false);
           setOpeningTime(p.opening_time || '');
@@ -107,6 +109,7 @@ export const OwnerProfileScreen = () => {
         state: state.trim(),
         pincode: trimmedPincode,
         service_radius_km: parseFloat(serviceRadiusKm) || 5,
+        max_skip_days: Math.min(365, Math.max(1, parseInt(maxSkipDays, 10) || 7)),
         delivery_available: deliveryAvailable,
         pickup_available: pickupAvailable,
         opening_time: openingTime || null,
@@ -254,6 +257,13 @@ export const OwnerProfileScreen = () => {
               value={serviceRadiusKm}
               onChangeText={setServiceRadiusKm}
               keyboardType="numeric"
+            />
+            <Input
+              label="Max Days Allowed to Skip Tiffin"
+              placeholder="7"
+              value={maxSkipDays}
+              onChangeText={setMaxSkipDays}
+              keyboardType="number-pad"
             />
 
             {/* Kitchen Service Hours */}

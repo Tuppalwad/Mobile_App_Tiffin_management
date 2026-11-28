@@ -55,13 +55,78 @@ export const OwnerSubscriptionsScreen = () => {
     fetchData();
   };
 
-  const handleUpdateSkip = async (skipId, status) => {
+  const handleUpdateSkip = async (skipIds, status) => {
     try {
-      await ownerApi.updateSkipStatus(skipId, { status });
+      const ids = Array.isArray(skipIds) ? skipIds : [skipIds];
+      await Promise.all(ids.map((id) => ownerApi.updateSkipStatus(id, { status })));
       CustomAlert.alert('Success', `Skip request ${status}!`);
       fetchData();
     } catch (err) {
       CustomAlert.alert('Error', err.message || 'Failed to update skip request');
+    }
+  };
+
+  const getTodayStr = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const groupSkipRequests = (items) => {
+    const addOneDay = (dateStr) => {
+      const d = new Date(`${dateStr}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString().split('T')[0];
+    };
+
+    const grouped = [];
+    for (const curr of items) {
+      const prev = grouped[grouped.length - 1];
+      const currCreated = curr.created_at || curr.createdAt;
+      const sameBatchTime =
+        !prev?.createdAt ||
+        !currCreated ||
+        Math.abs(new Date(currCreated).getTime() - new Date(prev.createdAt).getTime()) < 10000;
+
+      if (
+        prev &&
+        prev.subscription_id === curr.subscription_id &&
+        prev.status === curr.status &&
+        (prev.reason || '') === (curr.reason || '') &&
+        addOneDay(prev.end_date) === curr.skip_date &&
+        sameBatchTime
+      ) {
+        prev.end_date = curr.skip_date;
+        prev.ids.push(curr.id);
+        prev.day_count = prev.ids.length;
+      } else {
+        grouped.push({
+          ...curr,
+          ids: [curr.id],
+          start_date: curr.skip_date,
+          end_date: curr.skip_date,
+          day_count: 1,
+          createdAt: currCreated,
+        });
+      }
+    }
+    return grouped;
+  };
+
+  const handleCancelDecision = async (subId, status) => {
+    try {
+      await ownerApi.updateSubscriptionCancelStatus(subId, status);
+      CustomAlert.alert(
+        'Success',
+        status === 'approved'
+          ? 'Subscription cancellation approved.'
+          : 'Cancellation request rejected.'
+      );
+      fetchData();
+    } catch (err) {
+      CustomAlert.alert('Error', err.message || 'Failed to update cancellation request');
     }
   };
 
@@ -70,7 +135,7 @@ export const OwnerSubscriptionsScreen = () => {
     return (
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.customerName}>{customer.name || 'Customer'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
               <Phone size={12} color={COLORS.textSecondary} />
@@ -101,17 +166,50 @@ export const OwnerSubscriptionsScreen = () => {
             <Text style={styles.infoVal}>{item.remaining_days || 0} days</Text>
           </View>
         </View>
+
+        {item.cancel_status === 'requested' && (
+          <View style={styles.cancelRequestBox}>
+            <Text style={styles.cancelRequestTitle}>Cancellation Requested</Text>
+            {item.cancel_reason ? (
+              <Text style={styles.cancelReasonText}>Reason: "{item.cancel_reason}"</Text>
+            ) : null}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+              <TouchableOpacity
+                style={[styles.skipBtn, { backgroundColor: COLORS.danger, flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}
+                onPress={() => handleCancelDecision(item.id, 'approved')}
+              >
+                <Check size={16} color="#FFF" />
+                <Text style={styles.skipBtnText}>Approve Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.skipBtn, { backgroundColor: COLORS.textSecondary, flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}
+                onPress={() => handleCancelDecision(item.id, 'rejected')}
+              >
+                <X size={16} color="#FFF" />
+                <Text style={styles.skipBtnText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </Card>
     );
   };
 
   const renderSkipRequest = ({ item }) => {
+    const todayStr = getTodayStr();
+    const isRange = item.start_date !== item.end_date;
+    const dateLabel = isRange
+      ? `${item.start_date} to ${item.end_date} (${item.day_count} days)`
+      : item.start_date === todayStr
+        ? `Today (${item.start_date})`
+        : item.start_date;
+
     return (
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.customerName}>{item.customer?.name || 'Customer'}</Text>
-            <Text style={styles.skipDate}>Date to skip: {item.skip_date}</Text>
+            <Text style={styles.skipDate}>Date to skip: {dateLabel}</Text>
           </View>
           <Badge text={item.status} status={item.status} />
         </View>
@@ -124,7 +222,7 @@ export const OwnerSubscriptionsScreen = () => {
           <View style={styles.skipActions}>
             <TouchableOpacity
               style={[styles.skipBtn, { backgroundColor: COLORS.secondary, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
-              onPress={() => handleUpdateSkip(item.id, 'approved')}
+              onPress={() => handleUpdateSkip(item.ids || [item.id], 'approved')}
             >
               <Text style={styles.skipBtnText}>Approve Skip & Deduct Meal</Text>
               <Check size={15} color="#FFF" />
@@ -132,7 +230,7 @@ export const OwnerSubscriptionsScreen = () => {
 
             <TouchableOpacity
               style={[styles.skipBtn, { backgroundColor: COLORS.danger, marginTop: 8, flexDirection: 'row', justifyContent: 'center', gap: 5 }]}
-              onPress={() => handleUpdateSkip(item.id, 'rejected')}
+              onPress={() => handleUpdateSkip(item.ids || [item.id], 'rejected')}
             >
               <Text style={styles.skipBtnText}>Reject</Text>
               <X size={15} color="#FFF" />
@@ -189,8 +287,8 @@ export const OwnerSubscriptionsScreen = () => {
         />
       ) : (
         <FlatList
-          data={skipRequests}
-          keyExtractor={(item) => item.id.toString()}
+          data={groupSkipRequests(skipRequests)}
+          keyExtractor={(item) => (item.ids ? item.ids.join('-') : item.id.toString())}
           renderItem={renderSkipRequest}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
@@ -345,6 +443,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
     paddingHorizontal: 24,
+  },
+  cancelRequestBox: {
+    marginTop: 12,
+    padding: 10,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelRequestTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.danger,
+  },
+  cancelReasonText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });
 

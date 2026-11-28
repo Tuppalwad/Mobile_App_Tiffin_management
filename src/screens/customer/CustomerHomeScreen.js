@@ -23,7 +23,6 @@ import {
   ArrowRight,
   MessageCircle,
   Bell,
-  ShoppingCart,
   PauseCircle,
   Search,
   User,
@@ -40,7 +39,6 @@ import { formatKitchenHours } from '../../utils/timeUtils';
 
 export const CustomerHomeScreen = ({ navigation }) => {
   const { user } = useSelector((state) => state.auth);
-  const cart = useSelector((state) => state.cart);
   const [providers, setProviders] = useState([]);
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [search, setSearch] = useState('');
@@ -216,18 +214,6 @@ export const CustomerHomeScreen = ({ navigation }) => {
                     </View>
                   )}
                 </TouchableOpacity>
-
-                {cart.items.length > 0 && (
-                  <TouchableOpacity
-                    style={[styles.cartBtn, { marginLeft: 10 }]}
-                    onPress={() => navigation.navigate('CustomerCart')}
-                  >
-                    <ShoppingCart size={20} color={COLORS.text} />
-                    <View style={styles.cartBadge}>
-                      <Text style={styles.cartBadgeText}>{cart.items.length}</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
               </View>
             </View>
 
